@@ -3,36 +3,12 @@ const qs = require("qs");
 
 const apiBase = 'https://slack.com/api';
 const DEBUG_MODE = true;
-const mockData = {
-    betTotal: 4,
-    bets: [{
-        betId: 1,
-        amount: 100,
-        description: 'asdf1',
-        other: 'other1',
-    }, {
-        betId: 2,
-        amount: 600,
-        description: 'asdf2',
-        other: 'other2',
-    }, {
-        betId: 3,
-        amount: 200,
-        description: 'asdf3',
-        other: 'other3',
-    }, {
-        betId: 4,
-        amount: 500,
-        description: 'asdf4',
-        other: 'other4',
-    }]
-};
 
-exports.displayHome = async (slackUser, user, walletsForUser) => {
+exports.displayHome = async (slackUser, walletsForUser) => {
     const args = {
         token: process.env.SLACK_BOT_TOKEN,
         user_id: slackUser,
-        view: await updateView(slackUser, user, walletsForUser),
+        view: await updateView(slackUser, walletsForUser),
     };
     await publishHomeView(args);
 };
@@ -76,16 +52,16 @@ const warningBlock = {
     }
 };
 
-const sumPoints = (bets) => {
-    return bets.reduce((a, b) => a + (b['amount'] || 0), 0);
+const sumPoints = (walletsForUser) => {
+    return walletsForUser.reduce((a, b) => a + (b['points'] || 0), 0);
 };
 
-const summaryBlock = (mockData) => {
+const summaryBlock = (walletsForUser) => {
     return {
         type: "section",
         text: {
             type: "mrkdwn",
-            text: `You're currently involved in ${mockData.betTotal} bets for a total of ${sumPoints(mockData.bets)} points`
+            text: `You currently have ${walletsForUser.length} wallets with a total of ${sumPoints(walletsForUser)} points`
         },
     };
 };
@@ -123,7 +99,7 @@ const walletActionView = (wallet) => {
                 text: "Do a thing",
             },
             style: "primary",
-            action_id: "doAThing",
+            action_id: "clymer_test",
         }]
     };
 };
@@ -139,13 +115,13 @@ const homeViewSummary = (blockArray) => {
     };
 }
 
-const updateView = async (slackUser, user, walletsForUser) => {
+const updateView = async (slackUser, walletsForUser) => {
     let blockArray = [];
     blockArray.push(welcomeBlock(slackUser));
     blockArray.push(dividerBlock);
     blockArray.push(warningBlock);
     blockArray.push(dividerBlock);
-    blockArray.push(summaryBlock(mockData));
+    blockArray.push(summaryBlock(walletsForUser));
     blockArray.push(dividerBlock);
     for (let i = 0; i < walletsForUser.length; i++) {
         const wallet = walletsForUser[i];
