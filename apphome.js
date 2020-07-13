@@ -55,19 +55,42 @@ const warningBlock = {
     },
 };
 
-const sumPoints = (walletsForUser) => {
-    return !walletsForUser ? 0 : walletsForUser.reduce((a, b) => a + (b["points"] || 0), 0);
+const sumThing = (arrayToSum, propToSum) => {
+    return !arrayToSum ? 0 : arrayToSum.reduce((a, b) => a + (b[propToSum] || 0), 0);
 };
 
-const summaryBlock = (walletsForUser) => {
+const summaryBlock = (walletsForUser, betsForUser) => {
+    const walletCount = walletsForUser ? walletsForUser.length : 0;
+    const betCount = betsForUser ? betsForUser.length : 0;
+    const totalWalletPoints = sumThing(walletsForUser, "points");
+    const totalBetPoints = sumThing(betsForUser, "pointsBet");
     return {
         type: "section",
         text: {
             type: "mrkdwn",
-            text: `You currently have ${walletsForUser.length} wallets with a total of ${sumPoints(walletsForUser)} points`,
+            text: `*Summary*\r\nYou have ${walletCount} wallets with a total of ${totalWalletPoints} points.\r\nYou have ${betCount} outstanding bets for a total of ${totalBetPoints} points.\r\n\r\n\r\n\r\n`,
         },
     };
 };
+
+const betSummaryView = (bet) => {
+    return {
+        type: "section",
+        fields: [{
+                type: "mrkdwn",
+                text: `*BetID:* ${bet._id}`,
+            },
+            {
+                type: "mrkdwn",
+                text: `*Points:* ${bet.pointsBet}`,
+            },
+            {
+                type: "mrkdwn",
+                text: `*Scenario Text:* ${bet.scenarioText}`,
+            }
+        ]
+    };
+}
 
 const walletSummaryView = (wallet) => {
     return {
@@ -82,7 +105,7 @@ const walletSummaryView = (wallet) => {
             },
             {
                 type: "mrkdwn",
-                text: `*Points:* ${wallet.points}`,
+                text: `*Scenario:* ${wallet.points}`,
             },
             {
                 type: "mrkdwn",
@@ -157,13 +180,24 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) 
     blockArray.push(warningBlock);
     blockArray.push(dividerBlock);
     if (walletsForUser) {
-        blockArray.push(summaryBlock(walletsForUser));
+        blockArray.push(summaryBlock(walletsForUser, allBetsForUser));
         blockArray.push(dividerBlock);
         for (let i = 0; i < walletsForUser.length; i++) {
             const wallet = walletsForUser[i];
-            const betsForThisWallet = getBetsForWallet(wallet._id);
+            const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
             console.log(betsForThisWallet);
             blockArray.push(walletSummaryView(wallet));
+            blockArray.push({
+                type: "section",
+                text: {
+                    type: "mrkdwn",
+                    text: "Here are the bets associated with this wallet:",
+                },
+            });
+            for (let j = 0; j < betsForThisWallet.length; j++) {
+                const thisBet = betsForThisWallet[j];
+                blockArray.push(betSummaryView(thisBet));
+            }
             blockArray.push(walletActionView(wallet));
             blockArray.push(dividerBlock);
         }
