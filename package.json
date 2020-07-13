@@ -1,17 +1,19 @@
 {
-  "name": "@slack/slack-bolt-sdk-example",
+  "name": "Hudl Bookie Bot",
   "version": "1.0.1",
   "private": true,
-  "description": "A basic example of using the Slack Bolt ⚡️ SDK",
+  "description": "WIP Hudl Bookie Bot",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js"
   },
-  "author": "Tomomi Imura <opensource@slack.com>",
+  "author": "Greg Dick, Eric Clymer, etc.",
   "license": "MIT",
   "dependencies": {
     "@slack/bolt": "^2.1.1",
-    "dotenv": "^8.2.0"
+    "axios": "^0.19.2",
+    "dotenv": "^8.2.0",
+    "qs": "^6.9.4"
   }
 }
