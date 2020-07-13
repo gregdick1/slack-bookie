@@ -1,7 +1,8 @@
 require("dotenv").config();
 const { App } = require("@slack/bolt");
 const appHome = require("./apphome");
-const wallet = require("./db/wallet");
+const walletDB = require("./db/wallet");
+const betDB = require("./db/bet");
 const mobVoteHandler = require("./actionHandlers/mobVoteHandler");
 const betHandler = require("./actionHandlers/betHandler");
 const mentionHandler = require("./actionHandlers/mentionHandler");
@@ -25,8 +26,16 @@ app.event("app_home_opened", ({ event, say }) => {
     return;
   }
 
-  let walletsForUser = wallet.getAllWalletsForUser(event.user);
-  appHome.displayHome(event.user, walletsForUser);
+  console.log(event);
+
+  const walletsForUser = walletDB.getAllWalletsForUser(event.user);
+  const allBetsForUser = betDB.getAllBetsForUser(event.user);
+  appHome.displayHome(
+    event.user,
+    event.channel,
+    walletsForUser,
+    allBetsForUser
+  );
 
   if (!walletsForUser || walletsForUser.length === 0) {
     say(`Hello world, and welcome <@${event.user}>!`);
