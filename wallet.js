@@ -23,18 +23,6 @@ db.onReady = function() {
     
     console.log('[getInfo] ' + key + ' : ' + value);
   });
-  
-  // do other things below
-  db.forEach(function (err, item) {
-    if (err) {
-      console.log(err);
-      return;
-    }
- 
-    for (var key in item) {
-      console.log(key + ' : ' + item[key]);
-    }
-  });
 }
 
 exports.getCurrentSeason = (channelId) => {
