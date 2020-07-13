@@ -1,5 +1,6 @@
 const wallet = require("../db/wallet");
 
+const defaultPoints = 1000;
 exports.setup = (app, botId) => {
   app.message(
     `<@${botId}> Let's gamble!`,

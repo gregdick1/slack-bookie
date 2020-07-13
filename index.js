@@ -12,7 +12,6 @@ const app = new App({
 });
 
 const botId = process.env.SLACK_BOT_ID;
-const defaultPoints = 1000;
 
 betModal.setup(app);
 betHandler.setup(app);
