@@ -28,11 +28,11 @@ const mockData = {
     }]
 };
 
-exports.displayHome = async (slackUser, user) => {
+exports.displayHome = async (slackUser, user, walletsForUser) => {
     const args = {
         token: process.env.SLACK_BOT_TOKEN,
         user_id: slackUser,
-        view: await updateView(slackUser, user),
+        view: await updateView(slackUser, user, walletsForUser),
     };
     await publishHomeView(args);
 };
@@ -90,28 +90,29 @@ const summaryBlock = (mockData) => {
     };
 };
 
-const betSummaryView = (bet) => {
+const walletSummaryView = (wallet) => {
     return {
         type: "section",
         fields: [{
                 type: "mrkdwn",
-                text: `*Bet ID:* ${bet.betId}`
+                text: `*WalletID:* ${wallet._id}`
             },
             {
                 type: "mrkdwn",
-                text: `*Amount:* ${bet.amount}`
+                text: `*Channel:* <#${wallet.channelId}>`
             }, {
                 type: "mrkdwn",
-                text: `*Description:* ${bet.description}`
-            }, {
+                text: `*Points:* ${wallet.points}`
+            },
+            {
                 type: "mrkdwn",
-                text: `*something else?:* ${bet.other}`
+                text: `*Season:* ${wallet.season}`
             },
         ],
     };
 };
 
-const betActionView = (bet) => {
+const walletActionView = (wallet) => {
     return {
         type: "actions",
         elements: [{
@@ -138,7 +139,7 @@ const homeViewSummary = (blockArray) => {
     };
 }
 
-const updateView = async (slackUser, user) => {
+const updateView = async (slackUser, user, walletsForUser) => {
     let blockArray = [];
     blockArray.push(welcomeBlock(slackUser));
     blockArray.push(dividerBlock);
@@ -146,10 +147,10 @@ const updateView = async (slackUser, user) => {
     blockArray.push(dividerBlock);
     blockArray.push(summaryBlock(mockData));
     blockArray.push(dividerBlock);
-    for (let i = 0; i < mockData.bets.length; i++) {
-        const bet = mockData.bets[i];
-        blockArray.push(betSummaryView(bet));
-        blockArray.push(betActionView(bet));
+    for (let i = 0; i < walletsForUser.length; i++) {
+        const wallet = walletsForUser[i];
+        blockArray.push(walletSummaryView(wallet));
+        blockArray.push(walletActionView(wallet));
         blockArray.push(dividerBlock);
     }
 
