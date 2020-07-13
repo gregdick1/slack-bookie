@@ -3,8 +3,8 @@ const {
   App
 } = require("@slack/bolt");
 const appHome = require("./apphome");
-const store = require("./store");
-const wallet = require("./wallet");
+const wallet = require("./db/wallet");
+const betHandler = require("./actionHandlers/betHandler");
 const betModal = require('./bet-modal');
 
 const app = new App({
@@ -13,6 +13,7 @@ const app = new App({
 });
 
 betModal.setup(app);
+betHandler.setup(app);
 
 app.event('app_home_opened', ({
   event,
@@ -34,22 +35,13 @@ app.event('app_home_opened', ({
   // let wallet2 = wallet.getWalletForSeason(event.channel, event.user, 1);
   // let test = wallet.getCurrentSeason('asdf');
 
-  // Look up the user from DB
-  let user = store.getUser(event.user);
   console.log(event);
 
   let walletsForUser = wallet.getAllWalletsForUser(event.user);
-  appHome.displayHome(event.user, user, walletsForUser);
-  if (!user) {
-    user = {
-      user: event.user,
-      channel: event.channel,
-    };
-    store.addUser(user);
+  appHome.displayHome(event.user, walletsForUser);
 
-    if (!walletsForUser || walletsForUser.length === 0) {
-      say(`Hello world, and welcome <@${event.user}>!`);
-    }
+  if (!walletsForUser || walletsForUser.length === 0) {
+    say(`Hello world, and welcome <@${event.user}>!`);
   }
 
 });

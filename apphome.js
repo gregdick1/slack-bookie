@@ -3,36 +3,12 @@ const qs = require("qs");
 
 const apiBase = 'https://slack.com/api';
 const DEBUG_MODE = true;
-const mockData = {
-    betTotal: 4,
-    bets: [{
-        betId: 1,
-        amount: 100,
-        description: 'asdf1',
-        other: 'other1',
-    }, {
-        betId: 2,
-        amount: 600,
-        description: 'asdf2',
-        other: 'other2',
-    }, {
-        betId: 3,
-        amount: 200,
-        description: 'asdf3',
-        other: 'other3',
-    }, {
-        betId: 4,
-        amount: 500,
-        description: 'asdf4',
-        other: 'other4',
-    }]
-};
 
-exports.displayHome = async (slackUser, user, walletsForUser) => {
+exports.displayHome = async (slackUser, walletsForUser) => {
     const args = {
         token: process.env.SLACK_BOT_TOKEN,
         user_id: slackUser,
-        view: await updateView(slackUser, user, walletsForUser),
+        view: await updateView(slackUser, walletsForUser),
     };
     await publishHomeView(args);
 };
@@ -123,7 +99,7 @@ const walletActionView = (wallet) => {
                 text: "Do a thing",
             },
             style: "primary",
-            action_id: "doAThing",
+            action_id: "clymer_test",
         }]
     };
 };
@@ -139,7 +115,7 @@ const homeViewSummary = (blockArray) => {
     };
 }
 
-const updateView = async (slackUser, user, walletsForUser) => {
+const updateView = async (slackUser, walletsForUser) => {
     let blockArray = [];
     blockArray.push(welcomeBlock(slackUser));
     blockArray.push(dividerBlock);

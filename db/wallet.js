@@ -78,7 +78,7 @@ exports.getWalletForSeason = (channelId, slackId, season) => {
     }
   });
   return existingWallet;
-}
+};
 
 exports.getAllWalletsForUser = (slackId) => {
   let allWalletsForUser = null;
