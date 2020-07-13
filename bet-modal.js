@@ -7,7 +7,18 @@ exports.setup = (app) => {
     // Acknowledge the command request
     await ack();
 
-    // TODO: ensure betting is set up for this channel and message back if not
+    const user = body.user_id;
+    const channel = body.channel_id;
+    const season = walletDb.getCurrentSeason(channel);
+    const wallet = walletDb.getWalletForSeason(channel, user, season);
+    if (!wallet) {
+      app.client.chat.postMessage({
+        token: context.botToken,
+        channel: channel,
+        text: `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``,
+      });
+      return;
+    }
 
     try {
       const result = await app.client.views.open({
@@ -24,7 +35,7 @@ exports.setup = (app) => {
             text: "Create a Bet",
           },
           private_metadata: JSON.stringify({
-            channel_id: body.channel_id,
+            wallet: wallet,
           }),
           blocks: [
             {
@@ -107,21 +118,11 @@ exports.setup = (app) => {
       return;
     }
 
-    const user = body["user"]["id"];
     const md = JSON.parse(view.private_metadata);
-    const channel = md.channel_id;
-    const season = walletDb.getCurrentSeason(channel);
-
-    const wallet = walletDb.getWalletForSeason(channel, user, season);
-
-    if (!wallet) {
-      // TODO message the user to get a wallet set up and/or run Let's gamble!
-      console.log("No creator wallet found");
-      return;
-    }
+    const wallet = md.wallet;
 
     if (wallet.points < amount) {
-      // TODO message back to user
+      // TODO message back to user?
       console.log("User doesn't have enough points for bet");
       return;
     }
