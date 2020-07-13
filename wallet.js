@@ -28,11 +28,13 @@ db.onReady = function() {
 exports.getCurrentSeason = (channelId) => {
     let latestSeason = 0;
     db.find({channelId: channelId}, (err, results) => {
-        results.forEach((item, idx) => {
-            if (item.season > latestSeason) {
-                latestSeason = item.season;
-            }
-        })
+        if (results !== undefined) {
+            results.forEach((item, idx) => {
+                if (item.season > latestSeason) {
+                    latestSeason = item.season;
+                }
+            })
+        }
     });
     return latestSeason;
 }

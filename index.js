@@ -28,6 +28,7 @@ app.event('app_home_opened', ({ event, say }) => {
   // wallet.addWallet(event.channel, event.user, 1000, season + 1);
   // let wallet1 = wallet.getWallet(event.channel, event.user);
   // let wallet2 = wallet.getWalletForSeason(event.channel, event.user, 1);
+  // let test = wallet.getCurrentSeason('asdf');
 
   // Look up the user from DB
   let user = store.getUser(event.user);
