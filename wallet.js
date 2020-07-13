@@ -1,94 +1,91 @@
-var TinyDB = require('tinydb');
-const db = new TinyDB('./wallet.db');
+var TinyDB = require("tinydb");
+const db = new TinyDB("./wallet.db");
 
 db.onReady = function () {
-  console.log('wallet database is ready for operating');
+  console.log("wallet database is ready for operating");
 
   // set info to DB
-  db.setInfo('title', 'Wallet DB', function (err, key, value) {
+  db.setInfo("title", "Wallet DB", function (err, key, value) {
     if (err) {
       console.log(err);
       return;
     }
 
-    console.log('[setInfo] ' + key + ' : ' + value);
+    console.log("[setInfo] " + key + " : " + value);
   });
 
   // get info from DB
-  db.getInfo('title', function (err, key, value) {
+  db.getInfo("title", function (err, key, value) {
     if (err) {
       console.log(err);
       return;
     }
 
-    console.log('[getInfo] ' + key + ' : ' + value);
+    console.log("[getInfo] " + key + " : " + value);
   });
-
-  // do other things below
-  db.forEach(function (err, item) {
-    if (err) {
-      console.log(err);
-      return;
-    }
-
-    for (var key in item) {
-      console.log(key + ' : ' + item[key]);
-    }
-  });
-}
+};
 
 exports.getCurrentSeason = (channelId) => {
-    let latestSeason = 0;
-    db.find({channelId: channelId}, (err, results) => {
-        if (results !== undefined) {
-            results.forEach((item, idx) => {
-                if (item.season > latestSeason) {
-                    latestSeason = item.season;
-                }
-            })
+  let latestSeason = 0;
+  db.find({ channelId: channelId }, (err, results) => {
+    if (results !== undefined) {
+      results.forEach((item, idx) => {
+        if (item.season > latestSeason) {
+          latestSeason = item.season;
         }
-    });
-    return latestSeason;
-}
+      });
+    }
+  });
+  return latestSeason;
+};
 
 exports.getWallet = (channelId, slackId) => {
-  let existingWallet = null
+  let existingWallet = null;
   const season = this.getCurrentSeason(channelId);
-  db.find({
-    slackId: slackId,
-    channelId: channelId,
-    season: season
-  }, (err, results) => {
-    existingWallet = results[0];
-  });
+  db.find(
+    {
+      slackId: slackId,
+      channelId: channelId,
+      season: season,
+    },
+    (err, results) => {
+      existingWallet = results[0];
+    }
+  );
   return existingWallet;
-}
+};
 
 exports.getWalletForSeason = (channelId, slackId, season) => {
   let existingWallet = null;
-  db.find({
-    slackId: slackId,
-    channelId: channelId,
-    season: season
-  }, (err, results) => {
-    if (results !== undefined) {
-      existingWallet = results[0];
+  db.find(
+    {
+      slackId: slackId,
+      channelId: channelId,
+      season: season,
+    },
+    (err, results) => {
+      if (results !== undefined) {
+        existingWallet = results[0];
+      }
     }
-  });
+  );
   return existingWallet;
-}
+};
 
 exports.getAllWalletsForUser = (slackId) => {
   let allWalletsForUser = null;
-  db.find({
-    slackId: slackId
-  }, (err, results) => {
-    if (results !== undefined) {
-      allWalletsForUser = results;
-    } else {
-      return [];
+  db.find(
+    {
+      slackId: slackId,
+    },
+    (err, results) => {
+      if (results !== undefined) {
+        allWalletsForUser = results;
+      } else {
+        return [];
+      }
     }
-  });
+  );
   return allWalletsForUser;
 };
 
@@ -101,10 +98,10 @@ exports.addWallet = (channelId, slackId, points, season) => {
     slackId: slackId,
     channelId: channelId,
     points: points,
-    season: season
+    season: season,
   });
-}
+};
 
 exports.save = () => {
   db.flush();
-}
+};
