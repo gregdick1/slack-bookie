@@ -76,16 +76,16 @@ const warningBlock = {
     }
 };
 
-const sumPoints = (bets) => {
-    return bets.reduce((a, b) => a + (b['amount'] || 0), 0);
+const sumPoints = (walletsForUser) => {
+    return walletsForUser.reduce((a, b) => a + (b['points'] || 0), 0);
 };
 
-const summaryBlock = (mockData) => {
+const summaryBlock = (walletsForUser) => {
     return {
         type: "section",
         text: {
             type: "mrkdwn",
-            text: `You're currently involved in ${mockData.betTotal} bets for a total of ${sumPoints(mockData.bets)} points`
+            text: `You currently have ${walletsForUser.length} wallets with a total of ${sumPoints(walletsForUser)} points`
         },
     };
 };
@@ -145,7 +145,7 @@ const updateView = async (slackUser, user, walletsForUser) => {
     blockArray.push(dividerBlock);
     blockArray.push(warningBlock);
     blockArray.push(dividerBlock);
-    blockArray.push(summaryBlock(mockData));
+    blockArray.push(summaryBlock(walletsForUser));
     blockArray.push(dividerBlock);
     for (let i = 0; i < walletsForUser.length; i++) {
         const wallet = walletsForUser[i];

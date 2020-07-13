@@ -37,6 +37,8 @@ app.event('app_home_opened', ({
   let user = store.getUser(event.user);
   console.log(event);
 
+  let walletsForUser = wallet.getAllWalletsForUser(event.user);
+  appHome.displayHome(event.user, user, walletsForUser);
   if (!user) {
     user = {
       user: event.user,
@@ -44,11 +46,11 @@ app.event('app_home_opened', ({
     };
     store.addUser(user);
 
-    say(`Hello world, and welcome <@${event.user}>!`);
+    if (!walletsForUser || walletsForUser.length === 0) {
+      say(`Hello world, and welcome <@${event.user}>!`);
+    }
   }
 
-  let walletsForUser = wallet.getAllWalletsForUser(event.user);
-  appHome.displayHome(event.user, user, walletsForUser);
 });
 
 // Start your app

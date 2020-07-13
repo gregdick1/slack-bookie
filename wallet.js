@@ -49,7 +49,7 @@ exports.getCurrentSeason = (channelId) => {
       if (item.season > latestSeason) {
         latestSeason = item.season;
       }
-    })
+    });
   });
   return latestSeason;
 }
