@@ -1,7 +1,5 @@
 require("dotenv").config();
-const {
-  App
-} = require("@slack/bolt");
+const { App } = require("@slack/bolt");
 const appHome = require("./apphome");
 const walletDB = require("./db/wallet");
 const betDB = require("./db/bet");
@@ -20,10 +18,7 @@ betModal.setup(app);
 betHandler.setup(app);
 mentionHandler.setup(app, botId);
 
-app.event("app_home_opened", ({
-  event,
-  say
-}) => {
+app.event("app_home_opened", ({ event, say }) => {
   // ignore if not the home tab
   if (event.tab !== "home") {
     return;
@@ -44,7 +39,12 @@ app.event("app_home_opened", ({
 
   const walletsForUser = walletDB.getAllWalletsForUser(event.user);
   const allBetsForUser = betDB.getAllBetsForUser(event.user);
-  appHome.displayHome(event.user, event.channel, walletsForUser, allBetsForUser);
+  appHome.displayHome(
+    event.user,
+    event.channel,
+    walletsForUser,
+    allBetsForUser
+  );
 
   if (!walletsForUser || walletsForUser.length === 0) {
     say(`Hello world, and welcome <@${event.user}>!`);
