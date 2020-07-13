@@ -120,6 +120,12 @@ exports.setup = (app) => {
       return;
     }
 
+    if (wallet.points < amount) {
+      // TODO message back to user
+      console.log("User doesn't have enough points for bet");
+      return;
+    }
+
     betDb.addBet(user, channel, wallet, val, amount);
 
     // Message the user

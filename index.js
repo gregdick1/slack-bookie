@@ -1,7 +1,8 @@
 require("dotenv").config();
 const { App } = require("@slack/bolt");
 const appHome = require("./apphome");
-const wallet = require("./db/wallet");
+const walletDB = require("./db/wallet");
+const betDB = require("./db/bet");
 const betHandler = require("./actionHandlers/betHandler");
 const mentionHandler = require("./actionHandlers/mentionHandler");
 const betModal = require("./bet-modal");
@@ -17,11 +18,6 @@ betModal.setup(app);
 betHandler.setup(app);
 mentionHandler.setup(app, botId);
 
-app.message("hello", async ({ message, say }) => {
-  // say() sends a message to the channel where the event was triggered
-  await say(`Hey there <@${message.user}>!`);
-});
-
 app.event("app_home_opened", ({ event, say }) => {
   // ignore if not the home tab
   if (event.tab !== "home") {
@@ -31,18 +27,24 @@ app.event("app_home_opened", ({ event, say }) => {
   //Testing the db stuff
   // let userWallet = wallet.getWallet(event.channel, event.user);
   // userWallet.points = userWallet.points + 500;
-  // wallet.save();
+  // walletDB.save();
 
-  // let season = wallet.getCurrentSeason(event.channel);
-  // wallet.addWallet(event.channel, event.user, 1000, season + 1);
-  // let wallet1 = wallet.getWallet(event.channel, event.user);
-  // let wallet2 = wallet.getWalletForSeason(event.channel, event.user, 1);
-  // let test = wallet.getCurrentSeason('asdf');
+  // let season = walletDB.getCurrentSeason(event.channel);
+  // walletDB.addWallet(event.channel, event.user, 1000, season + 1);
+  // let wallet1 = walletDB.getWallet(event.channel, event.user);
+  // let wallet2 = walletDB.getWalletForSeason(event.channel, event.user, 1);
+  // let test = walletDB.getCurrentSeason('asdf');
 
   console.log(event);
 
-  let walletsForUser = wallet.getAllWalletsForUser(event.user);
-  appHome.displayHome(event.user, walletsForUser);
+  const walletsForUser = walletDB.getAllWalletsForUser(event.user);
+  const allBetsForUser = betDB.getAllBetsForUser(event.user);
+  appHome.displayHome(
+    event.user,
+    event.channel,
+    walletsForUser,
+    allBetsForUser
+  );
 
   if (!walletsForUser || walletsForUser.length === 0) {
     say(`Hello world, and welcome <@${event.user}>!`);

@@ -49,6 +49,18 @@ exports.getBetById = (betId) => {
   return existingBet;
 };
 
+exports.getAllBetsForUser = (slackUser) => {
+  let existingBets = null;
+  db.find({
+    slackId: slackUser
+  }, (err, results) => {
+    if (results && results.length > 0) {
+      existingBets = results;
+    }
+  });
+  return existingBets;
+};
+
 exports.getUserBetsForChannel = (slackId, channelId, walletId) => {
   let existingBets = null;
   db.find({
@@ -82,7 +94,7 @@ exports.addBet = (slackId, channelId, walletId, scenarioText, pointsBet) => {
   let existingBet = this.getBetByUserChannelScenario(slackId, channelId, walletId, scenarioText);
   if (existingBet !== null) {
     console.log("WHOA PARTNER. ALREADY A BET LIKE THIS");
-    return;
+    return existingBet;
   }
   db.insertItem({
     slackId: slackId,
@@ -90,7 +102,10 @@ exports.addBet = (slackId, channelId, walletId, scenarioText, pointsBet) => {
     walletId: walletId,
     scenarioText: scenarioText,
     pointsBet: pointsBet
+  }, null, (err, results) => {
+    existingBet = results;
   });
+  return existingBet;
 };
 
 exports.save = () => {
