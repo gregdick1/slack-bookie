@@ -42,14 +42,13 @@ exports.getCurrentSeason = (channelId) => {
   db.find({
     channelId: channelId
   }, (err, results) => {
-    if (results === undefined) {
-      return -1;
+    if (results !== undefined) {
+      results.forEach((item, idx) => {
+        if (item.season > latestSeason) {
+          latestSeason = item.season;
+        }
+      });
     }
-    results.forEach((item, idx) => {
-      if (item.season > latestSeason) {
-        latestSeason = item.season;
-      }
-    });
   });
   return latestSeason;
 }
