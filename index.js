@@ -1,5 +1,7 @@
 require("dotenv").config();
-const { App } = require("@slack/bolt");
+const {
+  App
+} = require("@slack/bolt");
 const appHome = require("./apphome");
 const store = require("./store");
 const wallet = require("./wallet");
@@ -12,9 +14,11 @@ const app = new App({
 
 betModal.setup(app);
 
-app.event('app_home_opened', ({ event, say }) => {
+app.event('app_home_opened', ({
+  event,
+  say
+}) => {
   // ignore if not the home tab
-  console.log(event.tab);
   if (event.tab !== "home") {
     return;
   }
@@ -44,7 +48,8 @@ app.event('app_home_opened', ({ event, say }) => {
     say(`Hello world, and welcome <@${event.user}>!`);
   }
 
-  appHome.displayHome(event.user, user);
+  let walletsForUser = wallet.getAllWalletsForUser(event.user);
+  appHome.displayHome(event.user, user, walletsForUser);
 });
 
 // Start your app
