@@ -17,6 +17,11 @@ betModal.setup(app);
 betHandler.setup(app);
 mentionHandler.setup(app, botId);
 
+app.message("hello", async ({ message, say }) => {
+  // say() sends a message to the channel where the event was triggered
+  await say(`Hey there <@${message.user}>!`);
+});
+
 app.event("app_home_opened", ({ event, say }) => {
   // ignore if not the home tab
   if (event.tab !== "home") {

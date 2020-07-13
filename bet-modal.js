@@ -1,8 +1,13 @@
+const betDb = require("./db/bet");
+const walletDb = require("./db/wallet");
+
 exports.setup = (app) => {
   // Listen for a slash command invocation
-  app.command("/bookie-test", async ({ ack, body, context }) => {
+  app.command("/rh-bookie-test", async ({ ack, body, context }) => {
     // Acknowledge the command request
     await ack();
+
+    // TODO: ensure betting is set up for this channel and message back if not
 
     try {
       const result = await app.client.views.open({
@@ -18,6 +23,9 @@ exports.setup = (app) => {
             type: "plain_text",
             text: "Create a Bet",
           },
+          private_metadata: JSON.stringify({
+            channel_id: body.channel_id,
+          }),
           blocks: [
             {
               type: "section",
@@ -45,6 +53,18 @@ exports.setup = (app) => {
                 type: "plain_text_input",
                 action_id: "dreamy_input",
                 multiline: true,
+              },
+            },
+            {
+              type: "input",
+              block_id: "amount_input",
+              label: {
+                type: "plain_text",
+                text: "How many points?",
+              },
+              element: {
+                type: "plain_text_input",
+                action_id: "amount_input",
               },
             },
           ],
@@ -77,7 +97,30 @@ exports.setup = (app) => {
 
     const val =
       view["state"]["values"]["bet_scenario"]["dreamy_input"]["value"];
+
+    const amountInput =
+      view["state"]["values"]["amount_input"]["amount_input"]["value"];
+    const amount = parseInt(amountInput, 10);
+    if (isNaN(amount)) {
+      // TODO: what should we send back to the user?
+      console.log("Invalid input amount. Bailing");
+      return;
+    }
+
     const user = body["user"]["id"];
+    const md = JSON.parse(view.private_metadata);
+    const channel = md.channel_id;
+    const season = walletDb.getCurrentSeason(channel);
+
+    const wallet = walletDb.getWalletForSeason(channel, user, season);
+
+    if (!wallet) {
+      // TODO message the user to get a wallet set up and/or run Let's gamble!
+      console.log("No creator wallet found");
+      return;
+    }
+
+    betDb.addBet(user, channel, wallet, val, amount);
 
     // Message the user
     // try {
