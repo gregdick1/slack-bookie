@@ -3,6 +3,7 @@ const { App } = require("@slack/bolt");
 const appHome = require("./apphome");
 const walletDB = require("./db/wallet");
 const betDB = require("./db/bet");
+const mobVoteHandler = require("./actionHandlers/mobVoteHandler");
 const betHandler = require("./actionHandlers/betHandler");
 const mentionHandler = require("./actionHandlers/mentionHandler");
 const betModal = require("./bet-modal");
@@ -17,23 +18,13 @@ const botId = process.env.SLACK_BOT_ID;
 betModal.setup(app);
 betHandler.setup(app);
 mentionHandler.setup(app, botId);
+mobVoteHandler.setup(app);
 
 app.event("app_home_opened", ({ event, say }) => {
   // ignore if not the home tab
   if (event.tab !== "home") {
     return;
   }
-
-  //Testing the db stuff
-  // let userWallet = wallet.getWallet(event.channel, event.user);
-  // userWallet.points = userWallet.points + 500;
-  // walletDB.save();
-
-  // let season = walletDB.getCurrentSeason(event.channel);
-  // walletDB.addWallet(event.channel, event.user, 1000, season + 1);
-  // let wallet1 = walletDB.getWallet(event.channel, event.user);
-  // let wallet2 = walletDB.getWalletForSeason(event.channel, event.user, 1);
-  // let test = walletDB.getCurrentSeason('asdf');
 
   console.log(event);
 
