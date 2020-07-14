@@ -1,14 +1,15 @@
 const axios = require("axios");
 const qs = require("qs");
+const walletDB = require("./db/wallet");
 
 const apiBase = "https://slack.com/api";
 const DEBUG_MODE = true;
 
-exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser) => {
+exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     const args = {
         token: process.env.SLACK_BOT_TOKEN,
         user_id: slackUser,
-        view: await updateView(slackUser, channelId, walletsForUser, allBetsForUser),
+        view: await updateView(slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser),
     };
     await publishHomeView(args);
 };
@@ -35,9 +36,13 @@ const welcomeBlock = (slackUser) => {
         text: {
             type: "mrkdwn",
             // todo change to user's name?
-            text: `Welcome <@${slackUser}> ${
-        DEBUG_MODE ? new Date().toLocaleTimeString() : ""
-      }`,
+            text: `${DEBUG_MODE ? new Date().toLocaleTimeString() : ""}
+            
+A *wallet* is specific to a channel. If a channel isn't setup yet, type '@bookie Let's gamble!'
+
+After that, here are some things you can do:
+- 1 fun thing
+* another fun thing`,
         },
     };
 };
@@ -60,33 +65,72 @@ const sumThing = (arrayToSum, propToSum) => {
 };
 
 const summaryBlock = (walletsForUser, betsForUser) => {
-    const walletCount = walletsForUser ? walletsForUser.length : 0;
     const betCount = betsForUser ? betsForUser.length : 0;
-    const totalWalletPoints = sumThing(walletsForUser, "points");
+    const activeWallets = walletsForUser.filter(w => w.isActiveSeason);
+    const inactiveWallets = walletsForUser.filter(w => !w.isActiveSeason);
+    const activeWalletCount = activeWallets ? activeWallets.length : 0;
+    const inactiveWalletCount = inactiveWallets ? inactiveWallets.length : 0;
+    const activeWalletPoints = sumThing(activeWallets, "points");
+    const inactiveWalletPoints = sumThing(inactiveWallets, "points");
     const totalBetPoints = sumThing(betsForUser, "pointsBet");
     return {
         type: "section",
         text: {
             type: "mrkdwn",
-            text: `*Summary*\r\nYou have ${walletCount} wallets with a total of ${totalWalletPoints} points.\r\nYou have ${betCount} outstanding bets for a total of ${totalBetPoints} points.\r\n\r\n\r\n\r\n`,
+            text: `*Summary*
+You have ${activeWalletCount} active wallets with a total of ${activeWalletPoints} points.
+You have ${inactiveWalletCount} inactive wallets with a total of ${inactiveWalletPoints} points.
+You have ${betCount} outstanding bets for a total of ${totalBetPoints} points.
+`,
         },
     };
 };
 
-const betSummaryView = (bet) => {
+const strikethroughIfInactive = (strikeIfMeTrue, stringToStrike) => {
+    return `${strikeIfMeTrue ? '~' : ''}${stringToStrike}${strikeIfMeTrue ? '~' : ''}`;
+}
+
+const betSummaryView = (bet, wallet) => {
+    const dateCreatedString = bet.dateCreated ? new Date(bet.dateCreated).toLocaleString() : "?";
     return {
         type: "section",
         fields: [{
                 type: "mrkdwn",
-                text: `*BetID:* ${bet._id}`,
+                text: `*BetID:* ${strikethroughIfInactive(!wallet.betsAreActive, bet._id)}`,
             },
             {
                 type: "mrkdwn",
-                text: `*Points:* ${bet.pointsBet}`,
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
             },
             {
                 type: "mrkdwn",
                 text: `*Scenario Text:* ${bet.scenarioText}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Bet Created:* ${dateCreatedString}`,
+            }
+        ]
+    };
+};
+
+const betAcceptSummaryView = (betAccept, wallet) => {
+    const dateAcceptedString = betAccept.dateAccepted ? new Date(betAccept.dateAccepted).toLocaleString() : "?";
+    return {
+        type: "section",
+        fields: [{
+                type: "mrkdwn",
+                text: `*BetAcceptId:* ${strikethroughIfInactive(!wallet.betsAreActive, betAccept._id)}`,
+            },
+            {
+                type: "mrkdwn",
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)}`,
+            },
+            {
+                type: "mrkdwn",
+                text: `*Bet Id:* ${betAccept.betId}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Bet Created:* ${dateAcceptedString}`,
             }
         ]
     };
@@ -97,7 +141,7 @@ const walletSummaryView = (wallet) => {
         type: "section",
         fields: [{
                 type: "mrkdwn",
-                text: `*WalletID:* ${wallet._id}`,
+                text: `*WalletID:* ${strikethroughIfInactive(!wallet.betsAreActive,wallet._id)}`,
             },
             {
                 type: "mrkdwn",
@@ -105,11 +149,17 @@ const walletSummaryView = (wallet) => {
             },
             {
                 type: "mrkdwn",
-                text: `*Scenario:* ${wallet.points}`,
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive,wallet.points)}`,
             },
             {
                 type: "mrkdwn",
                 text: `*Season:* ${wallet.season}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Retired:* ${wallet.retired ? true : false}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Is Active:* ${wallet.isActiveSeason ? true : false}`,
             },
         ],
     };
@@ -118,15 +168,16 @@ const walletSummaryView = (wallet) => {
 const walletActionView = (wallet) => {
     return {
         type: "actions",
+        block_id: wallet._id,
         elements: [{
             type: "button",
             text: {
                 type: "plain_text",
                 emoji: true,
-                text: "Do a thing",
+                text: "Retire Wallet",
             },
-            style: "primary",
-            action_id: "clymer_test",
+            style: "danger",
+            action_id: "retire_wallet",
         }, ],
     };
 };
@@ -160,48 +211,96 @@ const homeViewSummary = (blockArray) => {
 };
 
 const getBetsForWallet = (allBetsForUser, walletId) => {
-    let betsForWallet = [];
-    for (let i = 0; i < allBetsForUser.length; i++) {
-        const betForUser = allBetsForUser[i];
-        if (betForUser.walletId === walletId) {
-            betsForWallet.push(betForUser);
-        }
-    }
-    return betsForWallet;
+    return allBetsForUser.filter(b => b.walletId == walletId);
 }
 
-const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) => {
+const walletSortFunc = (a, b) => {
+    if (a.isActiveSeason > b.isActiveSeason) {
+        return -1; // a = active, b = not. active seasons first
+    } else if (a.isActiveSeason < b.isActiveSeason) {
+        return 1; // a = not, b = active, active seasons first
+    } else if (!!a.retired < !!b.retired) {
+        return -1; // a = not, b = retired, notretired first
+    } else if (!!a.retired > !!b.retired) {
+        return 1; // a = retired, b = not, notretired first
+    } else {
+        // if a has more points than b, it should be first
+        return b.points - a.points;
+    }
+}
+
+const betSortFunc = (a, b) => {
+    return a.dateCreated > b.dateCreated;
+}
+
+const betAcceptSortFunc = (a, b) => {
+    return a.dateAccepted > b.dateAccepted;
+}
+
+const getBetAcceptsForBet = (allBetAcceptsForUser, betId) => {
+    return allBetAcceptsForUser.filter(ba => ba.betId == betId);
+}
+
+const getBetAcceptsForWallet = (allBetAcceptsForUser, walletId) => {
+    return allBetAcceptsForUser.filter(ba => ba.walletId == walletId);
+}
+
+const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     let blockArray = [];
     if (DEBUG_MODE) {
         blockArray.push(setMeUpView(channelId));
     }
     blockArray.push(welcomeBlock(slackUser));
     blockArray.push(dividerBlock);
-    blockArray.push(warningBlock);
-    blockArray.push(dividerBlock);
     if (walletsForUser) {
         blockArray.push(summaryBlock(walletsForUser, allBetsForUser));
         blockArray.push(dividerBlock);
+        walletsForUser.sort(walletSortFunc);
         for (let i = 0; i < walletsForUser.length; i++) {
             const wallet = walletsForUser[i];
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
-            console.log(betsForThisWallet);
+            const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
+            if (betAcceptsForThisWallet.length > 0) {
+                // do nothing;
+                var x = 1 + 1;
+            }
             blockArray.push(walletSummaryView(wallet));
-            blockArray.push({
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: "Here are the bets associated with this wallet:",
-                },
-            });
-            for (let j = 0; j < betsForThisWallet.length; j++) {
-                const thisBet = betsForThisWallet[j];
-                blockArray.push(betSummaryView(thisBet));
+            if (betsForThisWallet && betsForThisWallet.length > 0) {
+                blockArray.push({
+                    type: "section",
+                    text: {
+                        type: "mrkdwn",
+                        text: `Here are your created bets in <#${wallet.channelId}>:`,
+                    },
+                });
+                betsForThisWallet.sort(betSortFunc);
+                for (let j = 0; j < betsForThisWallet.length; j++) {
+                    const thisBet = betsForThisWallet[j];
+                    // TODO This should be bet accepts for OTHER users
+                    //const betAcceptsForUserForThisBet = getBetAcceptsForBet(allBetAcceptsForUser, thisBet._id);
+                    //console.log(betAcceptsForUserForThisBet);
+                    blockArray.push(betSummaryView(thisBet, wallet));
+                }
+            }
+            if (betAcceptsForThisWallet && betAcceptsForThisWallet.length > 0) {
+                blockArray.push({
+                    type: "section",
+                    text: {
+                        type: "mrkdwn",
+                        text: `Here are your accepted bets for <#${wallet.channelId}>:`,
+                    },
+                });
+                betAcceptsForThisWallet.sort(betAcceptSortFunc);
+                for (let j = 0; j < betAcceptsForThisWallet.length; j++) {
+                    const thisBetAccept = betAcceptsForThisWallet[j];
+                    blockArray.push(betAcceptSummaryView(thisBetAccept, wallet));
+                }
             }
             blockArray.push(walletActionView(wallet));
             blockArray.push(dividerBlock);
         }
     }
+    blockArray.push(warningBlock);
     const homeView = homeViewSummary(blockArray);
     return JSON.stringify(homeView);
 };
