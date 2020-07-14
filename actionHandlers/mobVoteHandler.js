@@ -21,7 +21,12 @@ exports.setup = (app) => {
   // Listen for a slash command invocation
   app.command(
     `/${consts.commandPrefix}bookie-channel-reset`,
-    async ({ ack, body, context, say }) => {
+    async ({
+      ack,
+      body,
+      context,
+      say
+    }) => {
       // Acknowledge the command request
       await ack();
 
@@ -44,7 +49,12 @@ exports.setup = (app) => {
     }
   );
 
-  app.event("reaction_added", async ({ message, context, body, say }) => {
+  app.event("reaction_added", async ({
+    message,
+    context,
+    body,
+    say
+  }) => {
     // See if it's a mob vote that can still be voted on
     if (body.event.reaction === "yes") {
       const postId = body.event.item.ts;
@@ -80,6 +90,5 @@ exports.setup = (app) => {
         }
       }
     }
-    console.log(context);
   });
 };

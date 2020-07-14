@@ -6,7 +6,12 @@ exports.setup = (app) => {
   // Listen for a slash command invocation
   app.command(
     `/${consts.commandPrefix}bookie-test`,
-    async ({ ack, body, context, say }) => {
+    async ({
+      ack,
+      body,
+      context,
+      say
+    }) => {
       // Acknowledge the command request
       await ack();
 
@@ -38,8 +43,7 @@ exports.setup = (app) => {
             private_metadata: JSON.stringify({
               wallet: wallet,
             }),
-            blocks: [
-              {
+            blocks: [{
                 type: "section",
                 text: {
                   type: "mrkdwn",
@@ -86,7 +90,6 @@ exports.setup = (app) => {
             },
           },
         });
-        console.log(result);
       } catch (error) {
         console.error(error);
       }
@@ -94,7 +97,12 @@ exports.setup = (app) => {
   );
 
   // Handle a view_submission event
-  app.view("bet_creation", async ({ ack, body, view, context }) => {
+  app.view("bet_creation", async ({
+    ack,
+    body,
+    view,
+    context
+  }) => {
     // Acknowledge the view_submission event
     await ack();
 
@@ -123,8 +131,7 @@ exports.setup = (app) => {
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: [
-        {
+      blocks: [{
           type: "section",
           text: {
             type: "mrkdwn",
@@ -156,16 +163,14 @@ exports.setup = (app) => {
         {
           type: "actions",
           block_id: "bet_actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "Submit Results",
-              },
-              action_id: "submit_results_from_channel",
+          elements: [{
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Submit Results",
             },
-          ],
+            action_id: "submit_results_from_channel",
+          }, ],
         },
       ],
     });

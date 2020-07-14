@@ -10,8 +10,6 @@ db.onReady = function () {
       console.log(err);
       return;
     }
-
-    console.log("[setInfo] " + key + " : " + value);
   });
 
   // get info from DB
@@ -20,8 +18,6 @@ db.onReady = function () {
       console.log(err);
       return;
     }
-
-    console.log("[getInfo] " + key + " : " + value);
   });
 };
 
@@ -38,8 +34,11 @@ exports.createMobVote = (channelId, postId, type, lockoutTime, votesNeeded) => {
 
 exports.getMobVote = (channelId, postId, type) => {
   let vote = null;
-  db.find(
-    { channelId: channelId, postId: postId, type: type },
+  db.find({
+      channelId: channelId,
+      postId: postId,
+      type: type
+    },
     (err, results) => {
       if (results !== undefined) {
         vote = results[0];

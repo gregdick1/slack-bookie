@@ -5,6 +5,16 @@ db.onReady = function () {
   console.log("Bet database is ready for operating");
 };
 
+const addPostUrl = (bet) => {
+  bet.postUrl = `https://hudl.slack.com/archives/${bet.channelId}/p${bet.postId}`;
+  return bet;
+};
+
+const addPostUrls = (bets) => {
+  bets.forEach(bet => addPostUrl(bet));
+  return bets;
+};
+
 exports.getBetById = (betId) => {
   let existingBet = null;
   db.find({
@@ -16,7 +26,7 @@ exports.getBetById = (betId) => {
       }
     }
   );
-  return existingBet;
+  return addPostUrl(existingBet);
 };
 
 exports.getAllBetsForUser = (slackUser) => {
@@ -30,7 +40,7 @@ exports.getAllBetsForUser = (slackUser) => {
       }
     }
   );
-  return existingBets;
+  return addPostUrls(existingBets);
 };
 
 exports.getUserBetsForChannel = (slackId, channelId, walletId) => {
@@ -46,7 +56,7 @@ exports.getUserBetsForChannel = (slackId, channelId, walletId) => {
       }
     }
   );
-  return existingBets;
+  return addPostUrls(existingBets);
 };
 
 exports.getBetByUserChannelScenario = (
@@ -68,7 +78,7 @@ exports.getBetByUserChannelScenario = (
       }
     }
   );
-  return existingBet;
+  return addPostUrl(existingBet);
 };
 
 exports.getBetByPostId = (channelId, postId) => {
@@ -83,7 +93,7 @@ exports.getBetByPostId = (channelId, postId) => {
       }
     }
   );
-  return existingBet;
+  return addPostUrl(existingBet);
 };
 
 exports.addBet = (

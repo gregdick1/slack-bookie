@@ -3,11 +3,14 @@ const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 
 exports.setup = (app) => {
-  app.action(
-    {
+  app.action({
       action_id: "accept_bet",
     },
-    async ({ body, ack, context }) => {
+    async ({
+      body,
+      ack,
+      context
+    }) => {
       await ack();
       try {
         const postId = body.message.ts;
@@ -32,8 +35,7 @@ exports.setup = (app) => {
               bet: bet,
               wallet: wallet,
             }),
-            blocks: [
-              {
+            blocks: [{
                 type: "section",
                 text: {
                   type: "mrkdwn",
@@ -80,7 +82,6 @@ exports.setup = (app) => {
             },
           },
         });
-        console.log(result);
       } catch (error) {
         console.error(error);
       }
@@ -88,7 +89,12 @@ exports.setup = (app) => {
   );
 
   // Handle a view_submission event
-  app.view("bet_acception", async ({ ack, body, view, context }) => {
+  app.view("bet_acception", async ({
+    ack,
+    body,
+    view,
+    context
+  }) => {
     // Acknowledge the view_submission event
     await ack();
 

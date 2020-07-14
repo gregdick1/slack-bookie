@@ -1,9 +1,11 @@
 const axios = require("axios");
 const qs = require("qs");
-const walletDB = require("./db/wallet");
-
-const apiBase = "https://slack.com/api";
-const DEBUG_MODE = true;
+const betAcceptDB = require("./db/betAccept");
+const betDB = require("./db/bet");
+const consts = require('./consts');
+const utilities = require('./utilities/utilities');
+const blockKitUtilities = require('./utilities/blockKitUtilities');
+const sortUtilities = require('./utilities/sortUtilities');
 
 exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     const args = {
@@ -16,187 +18,99 @@ exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUse
 
 const publishHomeView = async (args) => {
     await axios
-        .post(`${apiBase}/views.publish`, qs.stringify(args))
-        .then(function (response) {
-            console.log(response);
-        })
+        .post(`${consts.apiBase}/views.publish`, qs.stringify(args))
+        .then(function (response) {})
         .catch(function (error) {
             console.log(error);
         });
 };
 
-const dividerBlock = {
-    type: "divider",
-};
 
-
-const welcomeBlock = (slackUser) => {
-    return {
-        type: "section",
-        text: {
-            type: "mrkdwn",
-            // todo change to user's name?
-            text: `${DEBUG_MODE ? new Date().toLocaleTimeString() : ""}
+const welcomeBlock = () => {
+    return blockKitUtilities.markdownSection(`${consts.DEBUG_MODE ? new Date().toLocaleTimeString() : ""}
             
 A *wallet* is specific to a channel. If a channel isn't setup yet, type '@bookie Let's gamble!'
 
 After that, here are some things you can do:
 - 1 fun thing
-* another fun thing`,
-        },
-    };
+* another fun thing`);
 };
 
-const warningBlock = {
-    type: "section",
-    text: {
-        type: "mrkdwn",
-        text: "This is a slack bot that facilitates gambling. Gambling can be fun, but can also be dangerous. Only gamble what you're willing to lose.\r\n\r\nThe National Council on Problem Gambling Helpline offers a confidential, 24-hour helpline for problem gamblers or their family members at 1-800-522-4700",
-    },
-    accessory: {
-        type: "image",
-        image_url: "https://www.bestuscasinos.org/wp-content/uploads/2019/12/Gambling-Mistake-1.jpg",
-        alt_text: "This is what happens when you gamble",
-    },
+const warningBlock = () => {
+    return blockKitUtilities.markdownSectionWithAccessoryImage("This is a slack bot that facilitates gambling. Gambling can be fun, but can also be dangerous. Only gamble what you're willing to lose.\r\n\r\nThe National Council on Problem Gambling Helpline offers a confidential, 24-hour helpline for problem gamblers or their family members at 1-800-522-4700",
+        "https://www.bestuscasinos.org/wp-content/uploads/2019/12/Gambling-Mistake-1.jpg",
+        "This is what happens when you gamble");
 };
 
-const sumThing = (arrayToSum, propToSum) => {
-    return !arrayToSum ? 0 : arrayToSum.reduce((a, b) => a + (b[propToSum] || 0), 0);
-};
 
-const summaryBlock = (walletsForUser, betsForUser) => {
+const summaryBlock = (walletsForUser, betsForUser, allBetAcceptsForUser) => {
     const betCount = betsForUser ? betsForUser.length : 0;
+    const betAcceptCount = allBetAcceptsForUser ? allBetAcceptsForUser.length : 0;
     const activeWallets = walletsForUser.filter(w => w.isActiveSeason);
     const inactiveWallets = walletsForUser.filter(w => !w.isActiveSeason);
     const activeWalletCount = activeWallets ? activeWallets.length : 0;
     const inactiveWalletCount = inactiveWallets ? inactiveWallets.length : 0;
-    const activeWalletPoints = sumThing(activeWallets, "points");
-    const inactiveWalletPoints = sumThing(inactiveWallets, "points");
-    const totalBetPoints = sumThing(betsForUser, "pointsBet");
-    return {
-        type: "section",
-        text: {
-            type: "mrkdwn",
-            text: `*Summary*
+    const activeWalletPoints = utilities.sumThing(activeWallets, "points");
+    const inactiveWalletPoints = utilities.sumThing(inactiveWallets, "points");
+    const totalBetPoints = utilities.sumThing(betsForUser, "pointsBet");
+    const totalBetAcceptPoints = utilities.sumThing(allBetAcceptsForUser, "pointsBet");
+    return blockKitUtilities.markdownSection(`*Summary*
 You have ${activeWalletCount} active wallets with a total of ${activeWalletPoints} points.
 You have ${inactiveWalletCount} inactive wallets with a total of ${inactiveWalletPoints} points.
-You have ${betCount} outstanding bets for a total of ${totalBetPoints} points.
-`,
-        },
-    };
+You have ${betCount} created bets for a total of ${totalBetPoints} points.
+You have ${betAcceptCount} accepted bets for a total of ${totalBetAcceptPoints} points.
+`);
 };
 
-const strikethroughIfInactive = (strikeIfMeTrue, stringToStrike) => {
-    return `${strikeIfMeTrue ? '~' : ''}${stringToStrike}${strikeIfMeTrue ? '~' : ''}`;
-}
-
 const betSummaryView = (bet, wallet) => {
-    const dateCreatedString = bet.dateCreated ? new Date(bet.dateCreated).toLocaleString() : "?";
-    return {
-        type: "section",
-        fields: [{
-                type: "mrkdwn",
-                text: `*BetID:* ${strikethroughIfInactive(!wallet.betsAreActive, bet._id)}`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Scenario Text:* ${bet.scenarioText}`,
-            }, {
-                type: "mrkdwn",
-                text: `*Bet Created:* ${dateCreatedString}`,
-            }
-        ]
-    };
+    const dateCreatedString = utilities.formatDate(bet.dateCreated);
+    const betAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
+    const betAcceptPoints = utilities.sumThing(betAccepts, 'pointsBet');
+    const demFields = [
+        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
+        `*Scenario Text:* ${bet.scenarioText}`,
+        `*Bet Created:* ${dateCreatedString}`,
+        `*Bet Accepts:* ${betAccepts.length}`,
+        `*Bet Accepted Points:* ${betAcceptPoints}`,
+        `*Original Post:* <${bet.postUrl}|Open>`,
+    ];
+    return blockKitUtilities.markdownWithFieldsSection(demFields);
 };
 
 const betAcceptSummaryView = (betAccept, wallet) => {
-    const dateAcceptedString = betAccept.dateAccepted ? new Date(betAccept.dateAccepted).toLocaleString() : "?";
-    return {
-        type: "section",
-        fields: [{
-                type: "mrkdwn",
-                text: `*BetAcceptId:* ${strikethroughIfInactive(!wallet.betsAreActive, betAccept._id)}`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)}`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Bet Id:* ${betAccept.betId}`,
-            }, {
-                type: "mrkdwn",
-                text: `*Bet Created:* ${dateAcceptedString}`,
-            }
-        ]
-    };
+    const dateAcceptedString = utilities.formatDate(betAccept.dateAccepted);
+    const bet = betDB.getBetById(betAccept.betId);
+    const dateCreatedString = utilities.formatDate(bet.dateCreated);
+    const demFields = [
+        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)}`,
+        `*Bet Text:* ${bet.scenarioText}`,
+        `*Bet Created:* ${dateCreatedString}`,
+        `*Bet Accepted:* ${dateAcceptedString}`,
+        `*Bet Creator:* <@${bet.slackId}>`,
+        `*Original Post:* <${bet.postUrl}|Open>`,
+    ];
+    return blockKitUtilities.markdownWithFieldsSection(demFields);
 }
 
 const walletSummaryView = (wallet) => {
-    return {
-        type: "section",
-        fields: [{
-                type: "mrkdwn",
-                text: `*WalletID:* ${strikethroughIfInactive(!wallet.betsAreActive,wallet._id)}`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Channel:* <#${wallet.channelId}>`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive,wallet.points)}`,
-            },
-            {
-                type: "mrkdwn",
-                text: `*Season:* ${wallet.season}`,
-            }, {
-                type: "mrkdwn",
-                text: `*Retired:* ${wallet.retired ? true : false}`,
-            }, {
-                type: "mrkdwn",
-                text: `*Is Active:* ${wallet.isActiveSeason ? true : false}`,
-            },
-        ],
-    };
+    const initialPoints = wallet.initialPointBalance ? wallet.initialPointBalance : consts.defaultPoints;
+    const demFields = [
+        `*Channel:* <#${wallet.channelId}>`,
+        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive,wallet.points)}`,
+        `*Season:* ${wallet.season}`,
+        `*Retired:* ${wallet.retired ? true : false}`,
+        `*Is Active:* ${wallet.isActiveSeason ? true : false}`,
+        `*Initial Points:* ${initialPoints}`
+    ];
+    return blockKitUtilities.markdownWithFieldsSection(demFields);
 };
 
 const walletActionView = (wallet) => {
-    return {
-        type: "actions",
-        block_id: wallet._id,
-        elements: [{
-            type: "button",
-            text: {
-                type: "plain_text",
-                emoji: true,
-                text: "Retire Wallet",
-            },
-            style: "danger",
-            action_id: "retire_wallet",
-        }, ],
-    };
+    return blockKitUtilities.buttonAction(wallet._id, 'Retire Wallet', 'retire_wallet', 'danger');
 };
 
 const setMeUpView = (channelId) => {
-    return {
-        type: "actions",
-        block_id: channelId,
-        elements: [{
-            type: "button",
-            text: {
-                type: "plain_text",
-                emoji: true,
-                text: "Set Me Up With Some DB",
-            },
-            style: "primary",
-            action_id: "set_me_up_fam",
-        }],
-    };
+    return blockKitUtilities.buttonAction(channelId, "Set Me Up", "set_me_up_fam");
 }
 
 const homeViewSummary = (blockArray) => {
@@ -214,93 +128,47 @@ const getBetsForWallet = (allBetsForUser, walletId) => {
     return allBetsForUser.filter(b => b.walletId == walletId);
 }
 
-const walletSortFunc = (a, b) => {
-    if (a.isActiveSeason > b.isActiveSeason) {
-        return -1; // a = active, b = not. active seasons first
-    } else if (a.isActiveSeason < b.isActiveSeason) {
-        return 1; // a = not, b = active, active seasons first
-    } else if (!!a.retired < !!b.retired) {
-        return -1; // a = not, b = retired, notretired first
-    } else if (!!a.retired > !!b.retired) {
-        return 1; // a = retired, b = not, notretired first
-    } else {
-        // if a has more points than b, it should be first
-        return b.points - a.points;
-    }
-}
-
-const betSortFunc = (a, b) => {
-    return a.dateCreated > b.dateCreated;
-}
-
-const betAcceptSortFunc = (a, b) => {
-    return a.dateAccepted > b.dateAccepted;
-}
-
-const getBetAcceptsForBet = (allBetAcceptsForUser, betId) => {
-    return allBetAcceptsForUser.filter(ba => ba.betId == betId);
-}
-
 const getBetAcceptsForWallet = (allBetAcceptsForUser, walletId) => {
     return allBetAcceptsForUser.filter(ba => ba.walletId == walletId);
 }
 
 const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     let blockArray = [];
-    if (DEBUG_MODE) {
+    if (consts.DEBUG_MODE) {
         blockArray.push(setMeUpView(channelId));
     }
     blockArray.push(welcomeBlock(slackUser));
-    blockArray.push(dividerBlock);
+    blockArray.push(blockKitUtilities.dividerBlock);
     if (walletsForUser) {
-        blockArray.push(summaryBlock(walletsForUser, allBetsForUser));
-        blockArray.push(dividerBlock);
-        walletsForUser.sort(walletSortFunc);
+        blockArray.push(summaryBlock(walletsForUser, allBetsForUser, allBetAcceptsForUser));
+        blockArray.push(blockKitUtilities.dividerBlock);
+        walletsForUser.sort(sortUtilities.walletSortFunc);
         for (let i = 0; i < walletsForUser.length; i++) {
             const wallet = walletsForUser[i];
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
             const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
-            if (betAcceptsForThisWallet.length > 0) {
-                // do nothing;
-                var x = 1 + 1;
-            }
             blockArray.push(walletSummaryView(wallet));
             if (betsForThisWallet && betsForThisWallet.length > 0) {
-                blockArray.push({
-                    type: "section",
-                    text: {
-                        type: "mrkdwn",
-                        text: `Here are your created bets in <#${wallet.channelId}>:`,
-                    },
-                });
-                betsForThisWallet.sort(betSortFunc);
+                blockArray.push(blockKitUtilities.markdownSection(`Here are your created bets in <#${wallet.channelId}>:`));
+                betsForThisWallet.sort(sortUtilities.betSortFunc);
                 for (let j = 0; j < betsForThisWallet.length; j++) {
                     const thisBet = betsForThisWallet[j];
-                    // TODO This should be bet accepts for OTHER users
-                    //const betAcceptsForUserForThisBet = getBetAcceptsForBet(allBetAcceptsForUser, thisBet._id);
-                    //console.log(betAcceptsForUserForThisBet);
                     blockArray.push(betSummaryView(thisBet, wallet));
                 }
             }
             if (betAcceptsForThisWallet && betAcceptsForThisWallet.length > 0) {
-                blockArray.push({
-                    type: "section",
-                    text: {
-                        type: "mrkdwn",
-                        text: `Here are your accepted bets for <#${wallet.channelId}>:`,
-                    },
-                });
-                betAcceptsForThisWallet.sort(betAcceptSortFunc);
+                blockArray.push(blockKitUtilities.markdownSection(`You have agreed to the following bets in <#${wallet.channelId}>:`));
+                betAcceptsForThisWallet.sort(sortUtilities.betAcceptSortFunc);
                 for (let j = 0; j < betAcceptsForThisWallet.length; j++) {
                     const thisBetAccept = betAcceptsForThisWallet[j];
                     blockArray.push(betAcceptSummaryView(thisBetAccept, wallet));
                 }
             }
             blockArray.push(walletActionView(wallet));
-            blockArray.push(dividerBlock);
+            blockArray.push(blockKitUtilities.dividerBlock);
         }
     }
-    blockArray.push(warningBlock);
+    blockArray.push(warningBlock());
     const homeView = homeViewSummary(blockArray);
     return JSON.stringify(homeView);
 };

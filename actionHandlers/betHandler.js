@@ -6,7 +6,12 @@ exports.setupBets = (app) => {
   // Listen for a slash command invocation
   app.command(
     `/${consts.commandPrefix}bookie-test`,
-    async ({ ack, body, context, say }) => {
+    async ({
+      ack,
+      body,
+      context,
+      say
+    }) => {
       // Acknowledge the command request
       await ack();
 
@@ -38,8 +43,7 @@ exports.setupBets = (app) => {
             private_metadata: JSON.stringify({
               wallet: wallet,
             }),
-            blocks: [
-              {
+            blocks: [{
                 type: "section",
                 text: {
                   type: "mrkdwn",
@@ -78,7 +82,6 @@ exports.setupBets = (app) => {
             },
           },
         });
-        console.log(result);
       } catch (error) {
         console.error(error);
       }
@@ -86,7 +89,12 @@ exports.setupBets = (app) => {
   );
 
   // Handle a view_submission event
-  app.view("bet_creation", async ({ ack, body, view, context }) => {
+  app.view("bet_creation", async ({
+    ack,
+    body,
+    view,
+    context
+  }) => {
     const user = body.user.id;
     const val =
       view["state"]["values"]["bet_scenario"]["dreamy_input"]["value"];
@@ -124,8 +132,7 @@ exports.setupBets = (app) => {
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: [
-        {
+      blocks: [{
           type: "section",
           text: {
             type: "mrkdwn",
@@ -157,16 +164,14 @@ exports.setupBets = (app) => {
         {
           type: "actions",
           block_id: "bet_actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "Submit Results",
-              },
-              action_id: "submit_results_from_channel",
+          elements: [{
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Submit Results",
             },
-          ],
+            action_id: "submit_results_from_channel",
+          }, ],
         },
       ],
     });
@@ -177,11 +182,13 @@ exports.setupBets = (app) => {
 };
 
 exports.setup = (app) => {
-  app.action(
-    {
+  app.action({
       action_id: "set_me_up_fam",
     },
-    async ({ body, ack }) => {
+    async ({
+      body,
+      ack
+    }) => {
       await ack();
       const action = body.actions[0];
       const channelId = action.block_id;
@@ -245,11 +252,13 @@ exports.setup = (app) => {
       // do things
     }
   );
-  app.action(
-    {
+  app.action({
       action_id: "retire_wallet",
     },
-    async ({ body, ack }) => {
+    async ({
+      body,
+      ack
+    }) => {
       await ack();
       const action = body.actions[0];
       const walletId = action.block_id;

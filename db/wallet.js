@@ -10,8 +10,6 @@ db.onReady = function () {
       console.log(err);
       return;
     }
-
-    console.log("[setInfo] " + key + " : " + value);
   });
 
   // get info from DB
@@ -20,15 +18,12 @@ db.onReady = function () {
       console.log(err);
       return;
     }
-
-    console.log("[getInfo] " + key + " : " + value);
   });
 };
 
 exports.getCurrentSeason = (channelId) => {
   let latestSeason = 0;
-  db.find(
-    {
+  db.find({
       channelId: channelId,
     },
     (err, results) => {
@@ -46,8 +41,7 @@ exports.getCurrentSeason = (channelId) => {
 
 exports.getWalletById = (walletId) => {
   let existingWallet = null;
-  db.find(
-    {
+  db.find({
       _id: walletId,
     },
     (err, results) => {
@@ -62,8 +56,7 @@ exports.getWalletById = (walletId) => {
 exports.getWallet = (channelId, slackId) => {
   let existingWallet = null;
   const season = this.getCurrentSeason(channelId);
-  db.find(
-    {
+  db.find({
       slackId: slackId,
       channelId: channelId,
       season: season,
@@ -77,8 +70,7 @@ exports.getWallet = (channelId, slackId) => {
 
 exports.getWalletForSeason = (channelId, slackId, season) => {
   let existingWallet = null;
-  db.find(
-    {
+  db.find({
       slackId: slackId,
       channelId: channelId,
       season: season,
@@ -94,8 +86,7 @@ exports.getWalletForSeason = (channelId, slackId, season) => {
 
 exports.getAllWalletsForUser = (slackId, includeRetired) => {
   let allWalletsForUser = null;
-  db.find(
-    {
+  db.find({
       slackId: slackId,
     },
     (err, results) => {
@@ -133,13 +124,13 @@ exports.addWallet = (channelId, slackId, points, season) => {
   if (existingWallet !== null) {
     return existingWallet;
   }
-  db.insertItem(
-    {
+  db.insertItem({
       slackId: slackId,
       channelId: channelId,
       points: points,
       season: season,
       retired: false,
+      initialPointBalance: points,
     },
     null,
     (err, results) => {
@@ -155,8 +146,7 @@ exports.save = () => {
 
 exports.getAllWalletsForSeason = (channelId, season, includeRetired) => {
   let allWallets = [];
-  db.find(
-    {
+  db.find({
       channelId,
       season,
     },
