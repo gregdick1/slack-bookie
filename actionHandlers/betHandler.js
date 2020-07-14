@@ -17,8 +17,8 @@ exports.setupBets = (app) => {
 
             const user = body.user_id;
             const channel = body.channel_id;
-            const season = walletDb.getCurrentSeason(channel);
-            const wallet = walletDb.getWalletForSeason(channel, user, season);
+            const season = walletDB.getCurrentSeason(channel);
+            const wallet = walletDB.getWalletForSeason(channel, user, season);
             if (!wallet) {
                 say(
                     `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``
@@ -166,11 +166,10 @@ exports.setupBets = (app) => {
         });
 
         const postId = result.ts;
-        betDb.addBet(user, channel, wallet._id, val, amount, postId);
+        betDB.addBet(user, channel, wallet._id, val, amount, postId);
     });
 };
 
-const defaultPoints = 1000;
 exports.setup = (app) => {
     app.action({
             action_id: "set_me_up_fam",

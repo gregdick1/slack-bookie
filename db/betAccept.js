@@ -22,7 +22,7 @@ exports.getBetAcceptById = (betAcceptId) => {
 exports.getAllBetAcceptsForUser = (slackUser) => {
   let existingBetAccepts = [];
   db.find({
-      slackId: slackUser,
+      userId: slackUser,
     },
     (err, results) => {
       if (results && results.length > 0) {

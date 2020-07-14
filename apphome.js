@@ -114,20 +114,20 @@ const betSummaryView = (bet, wallet) => {
 };
 
 const betAcceptSummaryView = (betAccept, wallet) => {
-    const dateAcceptedString = betAccept.dateAccepted ? new Date(betAccept.dateCreated).toLocaleString() : "?";
+    const dateAcceptedString = betAccept.dateAccepted ? new Date(betAccept.dateAccepted).toLocaleString() : "?";
     return {
         type: "section",
         fields: [{
                 type: "mrkdwn",
-                text: `*BetID:* ${strikethroughIfInactive(!wallet.betsAreActive, bet._id)}`,
+                text: `*BetAcceptId:* ${strikethroughIfInactive(!wallet.betsAreActive, betAccept._id)}`,
             },
             {
                 type: "mrkdwn",
-                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)}`,
             },
             {
                 type: "mrkdwn",
-                text: `*Scenario Text:* ${bet.scenarioText}`,
+                text: `*Bet Id:* ${betAccept.betId}`,
             }, {
                 type: "mrkdwn",
                 text: `*Bet Created:* ${dateAcceptedString}`,
@@ -260,6 +260,10 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, 
             const wallet = walletsForUser[i];
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
             const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
+            if (betAcceptsForThisWallet.length > 0) {
+                // do nothing;
+                var x = 1 + 1;
+            }
             blockArray.push(walletSummaryView(wallet));
             if (betsForThisWallet && betsForThisWallet.length > 0) {
                 blockArray.push({
