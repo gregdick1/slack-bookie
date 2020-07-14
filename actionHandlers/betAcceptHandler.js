@@ -2,6 +2,7 @@ const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
+const betViewUtilities = require("../utilities/betViewUtilities");
 
 exports.setup = (app) => {
   app.action(
@@ -137,6 +138,13 @@ exports.setup = (app) => {
     const totalPaid = md.kitty + amount;
     if (totalPaid == bet.pointsBet) {
       betDb.setBetStatus(bet._id, betDb.statusClosed);
+
+      const result = await app.client.chat.update({
+        token: context.botToken,
+        channel: channel,
+        ts: bet.postId,
+        blocks: betViewUtilities.getBetPostView(bet, 'Closed', 0),
+      });
       console.log("Bet is closed! Wahoo!");
     }
   });
