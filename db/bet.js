@@ -146,7 +146,7 @@ exports.save = () => {
 };
 
 exports.setBetStatus = (betId, status) => {
-  if ([this.statusOpen, this.statusClosed, this.statusFinished, this.statusCanceled].findIndex(status) < 0) {
+  if ([this.statusOpen, this.statusClosed, this.statusFinished, this.statusCanceled].indexOf(status) < 0) {
     throw new Error("Invalid bet status");
   }
 

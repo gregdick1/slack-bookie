@@ -1,6 +1,7 @@
 const betDB = require("../db/bet");
 const walletDB = require("../db/wallet");
 const consts = require("../consts");
+const blockKitUtilities = require("../utilities/blockKitUtilities");
 
 exports.setupBets = (app) => {
   // Listen for a slash command invocation
@@ -43,13 +44,7 @@ exports.setupBets = (app) => {
             private_metadata: JSON.stringify({
               wallet: wallet,
             }),
-            blocks: [{
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: "Let's make a bet!",
-                },
-              },
+            blocks: [blockKitUtilities.markdownSection("Let's make a bet!"),
               {
                 type: "input",
                 block_id: "bet_scenario",
@@ -132,47 +127,10 @@ exports.setupBets = (app) => {
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: [{
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `<@${user}> wants to make a bet!`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: val,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `${amount} pts`,
-          },
-          accessory: {
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "Accept Bet",
-            },
-            action_id: "accept_bet",
-          },
-        },
-        {
-          type: "actions",
-          block_id: "bet_actions",
-          elements: [{
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "Submit Results",
-            },
-            action_id: "submit_results_from_channel",
-          }, ],
-        },
+      blocks: [blockKitUtilities.markdownSection(`<@${user}> wants to make a bet!`),
+        blockKitUtilities.markdownSection(val),
+        blockKitUtilities.markdownSectionWithAccessoryButton(`${amount} pts`, "Accept Bet", "accept_bet"),
+        blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel")
       ],
     });
 

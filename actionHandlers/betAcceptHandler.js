@@ -1,6 +1,7 @@
 const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
+const blockKitUtilities = require("../utilities/blockKitUtilities");
 
 exports.setup = (app) => {
   app.action(
@@ -15,7 +16,7 @@ exports.setup = (app) => {
         const bet = betDb.getBetByPostId(channel, postId);
         const existingAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
         const currentKitty = existingAccepts.reduce(
-          (a1, a2) => a1.pointsBet + a2.pointsBet,
+          (current, next) => current + next.pointsBet,
           0
         );
         const remainingBet = bet.pointsBet - currentKitty;
@@ -39,33 +40,14 @@ exports.setup = (app) => {
               kitty: currentKitty,
               wallet: wallet,
             }),
-            blocks: [
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `<@${bet.slackId}> has bet that...`,
-                },
-              },
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: bet.scenarioText,
-                },
-              },
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `You currently have ${
+            blocks: [blockKitUtilities.markdownSection(`<@${bet.slackId}> has bet that...`),
+              blockKitUtilities.markdownSection(bet.scenarioText),
+              blockKitUtilities.markdownSection(`You currently have ${
                     wallet.points
-                  } pts. This bet has ${remainingBet} pts remainig. You can accept this bet for any amount up to ${Math.min(
-                    wallet.points,
-                    remainingBet
-                  )} pts.`,
-                },
-              },
+                  } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+                    remainingBet,
+                    wallet.points
+                  )} pts.`),
               {
                 type: "input",
                 block_id: "amount_input",

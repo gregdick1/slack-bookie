@@ -3,11 +3,14 @@ const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 
 exports.setup = (app) => {
-  app.action(
-    {
+  app.action({
       action_id: "submit_results_from_channel",
     },
-    async ({ body, ack, context }) => {
+    async ({
+      body,
+      ack,
+      context
+    }) => {
       await ack();
       try {
         const postId = body.message.ts;
@@ -32,22 +35,8 @@ exports.setup = (app) => {
             private_metadata: JSON.stringify({
               bet: bet,
             }),
-            blocks: [
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `<@${bet.slackId}> bet that...`,
-                },
-              },
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: bet.scenarioText,
-                },
-              },
-              {
+            blocks: [blockKitUtilities.markdownSection(`<@${bet.slackId}> bet that...`),
+              blockKitUtilities.markdownSection(bet.scenarioText), {
                 type: "input",
                 label: {
                   type: "plain_text",
@@ -61,8 +50,7 @@ exports.setup = (app) => {
                     text: "Did it happen?",
                   },
                   action_id: "bet_result_input",
-                  options: [
-                    {
+                  options: [{
                       text: {
                         type: "plain_text",
                         text: ":yes:",
@@ -250,7 +238,12 @@ exports.setup = (app) => {
   };
 
   // Modal submission from the channel
-  app.view("results_submission", async ({ ack, body, view, context }) => {
+  app.view("results_submission", async ({
+    ack,
+    body,
+    view,
+    context
+  }) => {
     // Acknowledge the view_submission event
     await ack();
 
