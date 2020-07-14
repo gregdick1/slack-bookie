@@ -128,8 +128,10 @@ exports.setupBets = (app) => {
       token: context.botToken,
       channel: channel,
       blocks: [blockKitUtilities.markdownSection(`<@${user}> wants to make a bet!`),
+        blockKitUtilities.divider(),
         blockKitUtilities.markdownSection(val),
-        blockKitUtilities.markdownSectionWithAccessoryButton(`${amount} pts`, "Accept Bet", "accept_bet"),
+        blockKitUtilities.divider(),
+        blockKitUtilities.markdownSectionWithAccessoryButton(`*Status:* Open\n *Amount:* ${amount} pts\n*Remaining:* ${amount} pts`, "Accept Bet", "accept_bet"),
         blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel")
       ],
     });

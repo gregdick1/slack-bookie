@@ -78,3 +78,9 @@ exports.buttonAction = (blockId, buttonText, actionId, buttonStyle) => {
         }, ],
     }
 }
+
+exports.divider = () => {
+    return {
+        type: "divider"
+    }
+}

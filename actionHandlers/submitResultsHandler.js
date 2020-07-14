@@ -1,6 +1,7 @@
 const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
+const blockKitUtilities = require("../utilities/blockKitUtilities");
 
 exports.setup = (app) => {
   app.action({
