@@ -27,24 +27,28 @@ db.onReady = function () {
 
 exports.getCurrentSeason = (channelId) => {
   let latestSeason = 0;
-  db.find({
-    channelId: channelId
-  }, (err, results) => {
-    if (results !== undefined) {
-      results.forEach((item, idx) => {
-        if (item.season > latestSeason) {
-          latestSeason = item.season;
-        }
-      });
+  db.find(
+    {
+      channelId: channelId,
+    },
+    (err, results) => {
+      if (results !== undefined) {
+        results.forEach((item, idx) => {
+          if (item.season > latestSeason) {
+            latestSeason = item.season;
+          }
+        });
+      }
     }
-  });
+  );
   return latestSeason;
 };
 
 exports.getWalletById = (walletId) => {
   let existingWallet = null;
-  db.find({
-      _id: walletId
+  db.find(
+    {
+      _id: walletId,
     },
     (err, results) => {
       if (results && results.length > 0) {
@@ -58,7 +62,8 @@ exports.getWalletById = (walletId) => {
 exports.getWallet = (channelId, slackId) => {
   let existingWallet = null;
   const season = this.getCurrentSeason(channelId);
-  db.find({
+  db.find(
+    {
       slackId: slackId,
       channelId: channelId,
       season: season,
@@ -72,7 +77,8 @@ exports.getWallet = (channelId, slackId) => {
 
 exports.getWalletForSeason = (channelId, slackId, season) => {
   let existingWallet = null;
-  db.find({
+  db.find(
+    {
       slackId: slackId,
       channelId: channelId,
       season: season,
@@ -88,7 +94,8 @@ exports.getWalletForSeason = (channelId, slackId, season) => {
 
 exports.getAllWalletsForUser = (slackId, includeRetired) => {
   let allWalletsForUser = null;
-  db.find({
+  db.find(
+    {
       slackId: slackId,
     },
     (err, results) => {
@@ -100,7 +107,7 @@ exports.getAllWalletsForUser = (slackId, includeRetired) => {
     }
   );
   if (!includeRetired) {
-    allWalletsForUser = allWalletsForUser.filter(w => !w.retired);
+    allWalletsForUser = allWalletsForUser.filter((w) => !w.retired);
   }
   return allWalletsForUser;
 };
@@ -120,18 +127,43 @@ exports.addWallet = (channelId, slackId, points, season) => {
   if (existingWallet !== null) {
     return existingWallet;
   }
-  db.insertItem({
-    slackId: slackId,
-    channelId: channelId,
-    points: points,
-    season: season,
-    retired: false
-  }, null, (err, results) => {
-    existingWallet = results;
-  });
+  db.insertItem(
+    {
+      slackId: slackId,
+      channelId: channelId,
+      points: points,
+      season: season,
+      retired: false,
+    },
+    null,
+    (err, results) => {
+      existingWallet = results;
+    }
+  );
   return existingWallet;
 };
 
 exports.save = () => {
   db.flush();
+};
+
+exports.getAllWalletsForSeason = (channelId, season, includeRetired) => {
+  let allWallets = [];
+  db.find(
+    {
+      channelId,
+      season,
+    },
+    (err, results) => {
+      if (results !== undefined) {
+        allWallets = results;
+      } else {
+        return [];
+      }
+    }
+  );
+  if (!includeRetired && allWallets && allWallets.length) {
+    allWallets = allWallets.filter((w) => !w.retired);
+  }
+  return allWallets;
 };
