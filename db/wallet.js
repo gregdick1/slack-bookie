@@ -109,6 +109,12 @@ exports.getAllWalletsForUser = (slackId, includeRetired) => {
   if (!includeRetired) {
     allWalletsForUser = allWalletsForUser.filter((w) => !w.retired);
   }
+  for (let i = 0; i < allWalletsForUser.length; i++) {
+    const wal = allWalletsForUser[i];
+    const currentSeason = this.getCurrentSeason(wal.channelId);
+    wal.isActiveSeason = wal.season === currentSeason;
+    wal.betsAreActive = wal.isActiveSeason && !wal.retired;
+  }
   return allWalletsForUser;
 };
 
