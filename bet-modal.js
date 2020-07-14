@@ -44,15 +44,7 @@ exports.setup = (app) => {
                 text: {
                   type: "mrkdwn",
                   text: "Let's make a bet!",
-                }, //,
-                // accessory: {
-                //   type: 'button',
-                //   text: {
-                //     type: 'plain_text',
-                //     text: 'Click me!'
-                //   },
-                //   action_id: 'button_abc'
-                // }
+                },
               },
               {
                 type: "input",
@@ -95,9 +87,6 @@ exports.setup = (app) => {
 
   // Handle a view_submission event
   app.view("bet_creation", async ({ ack, body, view, context }) => {
-    // Acknowledge the view_submission event
-    await ack();
-
     const user = body.user.id;
     const val =
       view["state"]["values"]["bet_scenario"]["dreamy_input"]["value"];
@@ -105,21 +94,33 @@ exports.setup = (app) => {
     const amountInput =
       view["state"]["values"]["amount_input"]["amount_input"]["value"];
     const amount = parseInt(amountInput, 10);
-    if (isNaN(amount)) {
-      // TODO: what should we send back to the user?
-      console.log("Invalid input amount. Bailing");
-      return;
-    }
-
     const md = JSON.parse(view.private_metadata);
     const wallet = md.wallet;
+
+    let errors = undefined;
+
+    if (isNaN(amount)) {
+      errors = {
+        amount_input: "Please input a valid number of points",
+      };
+    } else if (wallet.points < amount) {
+      errors = {
+        amount_input: `You only have ${wallet.points} points in your wallet!`,
+      };
+    }
+
+    if (errors !== undefined) {
+      await ack({
+        response_action: "errors",
+        errors,
+      });
+      return;
+    } else {
+      await ack();
+    }
+
     const channel = wallet.channelId;
 
-    if (wallet.points < amount) {
-      // TODO message back to user?
-      console.log("User doesn't have enough points for bet");
-      return;
-    }
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
