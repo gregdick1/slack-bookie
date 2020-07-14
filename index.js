@@ -5,7 +5,7 @@ const walletDB = require("./db/wallet");
 const betDB = require("./db/bet");
 const mobVoteHandler = require("./actionHandlers/mobVoteHandler");
 const betHandler = require("./actionHandlers/betHandler");
-const acceptBetHandler = require("./actionHandlers/acceptBetHandler");
+const betAcceptHandler = require("./actionHandlers/betAcceptHandler");
 const mentionHandler = require("./actionHandlers/mentionHandler");
 const betModal = require("./bet-modal");
 
@@ -16,7 +16,7 @@ const app = new App({
 
 betModal.setup(app);
 betHandler.setup(app);
-acceptBetHandler.setup(app);
+betAcceptHandler.setup(app);
 mentionHandler.setup(app);
 mobVoteHandler.setup(app);
 
