@@ -1,5 +1,6 @@
 const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
+const betAcceptDb = require("../db/betAccept");
 
 exports.setup = (app) => {
   app.action(
@@ -36,7 +37,28 @@ exports.setup = (app) => {
                 type: "section",
                 text: {
                   type: "mrkdwn",
-                  text: "I want to accept this bet!",
+                  text: `<@${bet.slackId}> has bet that...`,
+                },
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: bet.scenarioText,
+                },
+              },
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: `You currently have ${
+                    wallet.points
+                  } pts. This bet is for ${
+                    bet.pointsBet
+                  } pts. You can accept this bet for any amount up to ${Math.min(
+                    wallet.points,
+                    bet.pointsBet
+                  )} pts.`,
                 },
               },
               {
@@ -44,7 +66,7 @@ exports.setup = (app) => {
                 block_id: "amount_input",
                 label: {
                   type: "plain_text",
-                  text: "How many points?",
+                  text: "How many points would you like to bet?",
                 },
                 element: {
                   type: "plain_text_input",
@@ -100,7 +122,6 @@ exports.setup = (app) => {
       text: `<@${user}> has accepted this bet!`,
     });
 
-    const postId = result.ts;
-    //make bet acception object
+    betAcceptDb.addBetAccept(bet._id, user, channel, wallet._id, amount);
   });
 };
