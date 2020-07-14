@@ -22,12 +22,14 @@ exports.setup = (app) => {
         // do things
     });
     app.action({
-        action_id: 'clymer_test'
+        action_id: 'retire_wallet'
     }, async ({
         body,
         ack
     }) => {
         await ack();
-        betDB.addBet('U025Q1R5B', 'D01700NPHGB', 'e559c293-6854-4762-8c76-09ca0fb53f30', 'scenario', 500);
+        const action = body.actions[0];
+        const walletId = action.block_id;
+        walletDB.retireWallet(walletId);
     });
 };

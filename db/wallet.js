@@ -41,6 +41,20 @@ exports.getCurrentSeason = (channelId) => {
   return latestSeason;
 };
 
+exports.getWalletById = (walletId) => {
+  let existingWallet = null;
+  db.find({
+      _id: walletId
+    },
+    (err, results) => {
+      if (results && results.length > 0) {
+        existingWallet = results[0];
+      }
+    }
+  );
+  return existingWallet;
+};
+
 exports.getWallet = (channelId, slackId) => {
   let existingWallet = null;
   const season = this.getCurrentSeason(channelId);
@@ -72,7 +86,7 @@ exports.getWalletForSeason = (channelId, slackId, season) => {
   return existingWallet;
 };
 
-exports.getAllWalletsForUser = (slackId) => {
+exports.getAllWalletsForUser = (slackId, includeRetired) => {
   let allWalletsForUser = null;
   db.find({
       slackId: slackId,
@@ -85,7 +99,20 @@ exports.getAllWalletsForUser = (slackId) => {
       }
     }
   );
+  if (!includeRetired) {
+    allWalletsForUser = allWalletsForUser.filter(w => !w.retired);
+  }
   return allWalletsForUser;
+};
+
+exports.retireWallet = (walletId) => {
+  let wallet = this.getWalletById(walletId);
+  if (!wallet) {
+    throw "Can't update a wallet that doesn't exist";
+  }
+  wallet.retired = true;
+  db.flush();
+  return wallet;
 };
 
 exports.addWallet = (channelId, slackId, points, season) => {
@@ -98,6 +125,7 @@ exports.addWallet = (channelId, slackId, points, season) => {
     channelId: channelId,
     points: points,
     season: season,
+    retired: false
   }, null, (err, results) => {
     existingWallet = results;
   });

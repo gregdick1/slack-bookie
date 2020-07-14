@@ -1,5 +1,6 @@
 const axios = require("axios");
 const qs = require("qs");
+const walletDB = require("./db/wallet");
 
 const apiBase = "https://slack.com/api";
 const DEBUG_MODE = true;
@@ -35,9 +36,13 @@ const welcomeBlock = (slackUser) => {
         text: {
             type: "mrkdwn",
             // todo change to user's name?
-            text: `Welcome <@${slackUser}> ${
-        DEBUG_MODE ? new Date().toLocaleTimeString() : ""
-      }`,
+            text: `${DEBUG_MODE ? new Date().toLocaleTimeString() : ""}
+            
+A *wallet* is specific to a channel. If a channel isn't setup yet, type '@bookie Let's gamble!'
+
+After that, here are some things you can do:
+- 1 fun thing
+* another fun thing`,
         },
     };
 };
@@ -60,15 +65,28 @@ const sumThing = (arrayToSum, propToSum) => {
 };
 
 const summaryBlock = (walletsForUser, betsForUser) => {
-    const walletCount = walletsForUser ? walletsForUser.length : 0;
     const betCount = betsForUser ? betsForUser.length : 0;
-    const totalWalletPoints = sumThing(walletsForUser, "points");
+    for (let i = 0; i < walletsForUser.length; i++) {
+        const wal = walletsForUser[i];
+        const currentSeason = walletDB.getCurrentSeason(wal.channelId);
+        wal.isActiveSeason = wal.season === currentSeason;
+    }
+    const activeWallets = walletsForUser.filter(w => w.isActiveSeason);
+    const inactiveWallets = walletsForUser.filter(w => !w.isActiveSeason);
+    const activeWalletCount = activeWallets ? activeWallets.length : 0;
+    const inactiveWalletCount = inactiveWallets ? inactiveWallets.length : 0;
+    const activeWalletPoints = sumThing(activeWallets, "points");
+    const inactiveWalletPoints = sumThing(inactiveWallets, "points");
     const totalBetPoints = sumThing(betsForUser, "pointsBet");
     return {
         type: "section",
         text: {
             type: "mrkdwn",
-            text: `*Summary*\r\nYou have ${walletCount} wallets with a total of ${totalWalletPoints} points.\r\nYou have ${betCount} outstanding bets for a total of ${totalBetPoints} points.\r\n\r\n\r\n\r\n`,
+            text: `*Summary*
+You have ${activeWalletCount} active wallets with a total of ${activeWalletPoints} points.
+You have ${inactiveWalletCount} inactive wallets with a total of ${inactiveWalletPoints} points.
+You have ${betCount} outstanding bets for a total of ${totalBetPoints} points.
+`,
         },
     };
 };
@@ -110,6 +128,12 @@ const walletSummaryView = (wallet) => {
             {
                 type: "mrkdwn",
                 text: `*Season:* ${wallet.season}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Retired:* ${wallet.retired ? true : false}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Is Active:* ${wallet.isActiveSeason ? true : false}`,
             },
         ],
     };
@@ -118,15 +142,16 @@ const walletSummaryView = (wallet) => {
 const walletActionView = (wallet) => {
     return {
         type: "actions",
+        block_id: wallet._id,
         elements: [{
             type: "button",
             text: {
                 type: "plain_text",
                 emoji: true,
-                text: "Do a thing",
+                text: "Retire Wallet",
             },
-            style: "primary",
-            action_id: "clymer_test",
+            style: "danger",
+            action_id: "retire_wallet",
         }, ],
     };
 };
@@ -177,8 +202,6 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) 
     }
     blockArray.push(welcomeBlock(slackUser));
     blockArray.push(dividerBlock);
-    blockArray.push(warningBlock);
-    blockArray.push(dividerBlock);
     if (walletsForUser) {
         blockArray.push(summaryBlock(walletsForUser, allBetsForUser));
         blockArray.push(dividerBlock);
@@ -187,21 +210,24 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) 
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
             console.log(betsForThisWallet);
             blockArray.push(walletSummaryView(wallet));
-            blockArray.push({
-                type: "section",
-                text: {
-                    type: "mrkdwn",
-                    text: "Here are the bets associated with this wallet:",
-                },
-            });
-            for (let j = 0; j < betsForThisWallet.length; j++) {
-                const thisBet = betsForThisWallet[j];
-                blockArray.push(betSummaryView(thisBet));
+            if (betsForThisWallet && betsForThisWallet.length > 0) {
+                blockArray.push({
+                    type: "section",
+                    text: {
+                        type: "mrkdwn",
+                        text: "Here are the bets associated with this wallet:",
+                    },
+                });
+                for (let j = 0; j < betsForThisWallet.length; j++) {
+                    const thisBet = betsForThisWallet[j];
+                    blockArray.push(betSummaryView(thisBet));
+                }
             }
             blockArray.push(walletActionView(wallet));
             blockArray.push(dividerBlock);
         }
     }
+    blockArray.push(warningBlock);
     const homeView = homeViewSummary(blockArray);
     return JSON.stringify(homeView);
 };
