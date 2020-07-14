@@ -103,6 +103,43 @@ exports.setup = (app) => {
     }
   );
 
+  //Probably a better home for this logic
+  const close_bet = (bet, betAccepts, result) => {
+    if (["yes", "no"].includes(result)) {
+      bet.status = betDb.statusFinished;
+    } else if (result === "inconclusive") {
+      bet.status = betDb.statusCanceled;
+    }
+    betDb.save();
+
+    if (result === "yes") {
+      //Creator is winner. They get points from the bet accepts as well as the original bet points back
+      let creatorWallet = walletDb.getWalletById(bet.walletId);
+      creatorWallet.points += bet.pointsBet;
+      betAccepts.forEach((ba) => {
+        creatorWallet.points += ba.pointsBet;
+      });
+      walletDb.save();
+    } else if (result === "no") {
+      //Acceptors win, they receive the payouts from their bet accepts
+      betAccepts.forEach((ba) => {
+        let acceptorWallet = walletDb.getWalletById(ba.walletId);
+        acceptorWallet.points += ba.payout;
+      });
+      walletDb.save();
+    } else if (result === "cancel") {
+      //Everyone gets their original points back
+      let creatorWallet = walletDb.getWalletById(bet.walletId);
+      creatorWallet.points += bet.pointsBet;
+
+      betAccepts.forEach((ba) => {
+        let acceptorWallet = walletDb.getWalletById(ba.walletId);
+        acceptorWallet.points += ba.pointsBet;
+      });
+      walletDb.save();
+    }
+  };
+
   const handle_submit_results = async (body, context, result) => {
     const view = body.view;
     const userId = body.user.id;
@@ -187,8 +224,7 @@ exports.setup = (app) => {
         message = `Hey ${usersToPing.join(
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
-
-        //TODO actual bet closure logic
+        close_bet(bet, betAccepts, result);
       } else if (
         creatorSideResults.length > 0 &&
         acceptorSideResults.length > 0

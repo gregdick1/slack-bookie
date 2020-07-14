@@ -122,6 +122,16 @@ exports.setup = (app) => {
       text: `<@${user}> has accepted this bet!`,
     });
 
-    betAcceptDb.addBetAccept(bet._id, user, channel, wallet._id, amount);
+    //TODO implement odds. Currently always 1:1
+    let payout = amount * 2;
+
+    betAcceptDb.addBetAccept(
+      bet._id,
+      user,
+      channel,
+      wallet._id,
+      amount,
+      payout
+    );
   });
 };
