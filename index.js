@@ -7,6 +7,7 @@ const mobVoteHandler = require("./actionHandlers/mobVoteHandler");
 const betHandler = require("./actionHandlers/betHandler");
 const betAcceptHandler = require("./actionHandlers/betAcceptHandler");
 const mentionHandler = require("./actionHandlers/mentionHandler");
+const submitResultsHandler = require("./actionHandlers/submitResultsHandler");
 const betModal = require("./bet-modal");
 
 const app = new App({
@@ -19,6 +20,7 @@ betHandler.setup(app);
 betAcceptHandler.setup(app);
 mentionHandler.setup(app);
 mobVoteHandler.setup(app);
+submitResultsHandler.setup(app);
 
 app.event("app_home_opened", ({ event, say }) => {
   // ignore if not the home tab

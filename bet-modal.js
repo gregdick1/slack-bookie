@@ -153,6 +153,20 @@ exports.setup = (app) => {
             action_id: "accept_bet",
           },
         },
+        {
+          type: "actions",
+          block_id: "bet_actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Submit Results",
+              },
+              action_id: "submit_results_from_channel",
+            },
+          ],
+        },
       ],
     });
 

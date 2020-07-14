@@ -35,6 +35,21 @@ exports.getAllBetAcceptsForUser = (slackUser) => {
   return existingBetAccepts;
 };
 
+exports.getAllBetAcceptsForBet = (betId) => {
+  let existingBetAccepts = [];
+  db.find(
+    {
+      betId: betId,
+    },
+    (err, results) => {
+      if (results && results.length > 0) {
+        existingBetAccepts = results;
+      }
+    }
+  );
+  return existingBetAccepts;
+};
+
 exports.addBetAccept = (betId, userId, channelId, walletId, pointsBet) => {
   let existingBetAccept = null;
   //TODO transfer points from wallet to bet
