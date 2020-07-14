@@ -7,8 +7,7 @@ db.onReady = function () {
 
 exports.getBetById = (betId) => {
   let existingBet = null;
-  db.find(
-    {
+  db.find({
       _id: betId,
     },
     (err, results) => {
@@ -22,8 +21,7 @@ exports.getBetById = (betId) => {
 
 exports.getAllBetsForUser = (slackUser) => {
   let existingBets = [];
-  db.find(
-    {
+  db.find({
       slackId: slackUser,
     },
     (err, results) => {
@@ -37,8 +35,7 @@ exports.getAllBetsForUser = (slackUser) => {
 
 exports.getUserBetsForChannel = (slackId, channelId, walletId) => {
   let existingBets = null;
-  db.find(
-    {
+  db.find({
       slackId: slackId,
       channelId: channelId,
       walletId: walletId,
@@ -59,8 +56,7 @@ exports.getBetByUserChannelScenario = (
   scenarioText
 ) => {
   let existingBet = null;
-  db.find(
-    {
+  db.find({
       slackId: slackId,
       channelId: channelId,
       walletId: walletId,
@@ -77,8 +73,7 @@ exports.getBetByUserChannelScenario = (
 
 exports.getBetByPostId = (channelId, postId) => {
   let existingBet = null;
-  db.find(
-    {
+  db.find({
       channelId: channelId,
       postId: postId,
     },
@@ -110,14 +105,14 @@ exports.addBet = (
     return existingBet;
   }
   //TODO transfer points from wallet to bet
-  db.insertItem(
-    {
+  db.insertItem({
       slackId: slackId,
       channelId: channelId,
       walletId: walletId,
       scenarioText: scenarioText,
       pointsBet: pointsBet,
       postId: postId,
+      dateCreated: Date.now(),
     },
     null,
     (err, results) => {

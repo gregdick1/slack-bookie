@@ -5,6 +5,7 @@ const {
 const appHome = require("./apphome");
 const walletDB = require("./db/wallet");
 const betDB = require("./db/bet");
+const betAcceptDB = require('./db/betAccept');
 const mobVoteHandler = require("./actionHandlers/mobVoteHandler");
 const betHandler = require("./actionHandlers/betHandler");
 const betAcceptHandler = require("./actionHandlers/betAcceptHandler");
@@ -35,11 +36,13 @@ app.event("app_home_opened", ({
 
   const walletsForUser = walletDB.getAllWalletsForUser(event.user, true);
   const allBetsForUser = betDB.getAllBetsForUser(event.user);
+  const allBetAcceptsForUser = betAcceptDB.getAllBetAcceptsForUser(event.user);
   appHome.displayHome(
     event.user,
     event.channel,
     walletsForUser,
-    allBetsForUser
+    allBetsForUser,
+    allBetAcceptsForUser,
   );
 
   if (!walletsForUser || walletsForUser.length === 0) {

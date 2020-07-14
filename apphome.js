@@ -5,11 +5,11 @@ const walletDB = require("./db/wallet");
 const apiBase = "https://slack.com/api";
 const DEBUG_MODE = true;
 
-exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser) => {
+exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     const args = {
         token: process.env.SLACK_BOT_TOKEN,
         user_id: slackUser,
-        view: await updateView(slackUser, channelId, walletsForUser, allBetsForUser),
+        view: await updateView(slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser),
     };
     await publishHomeView(args);
 };
@@ -91,6 +91,7 @@ const strikethroughIfInactive = (strikeIfMeTrue, stringToStrike) => {
 }
 
 const betSummaryView = (bet, wallet) => {
+    const dateCreatedString = bet.dateCreated ? new Date(bet.dateCreated).toLocaleString() : "?";
     return {
         type: "section",
         fields: [{
@@ -104,6 +105,32 @@ const betSummaryView = (bet, wallet) => {
             {
                 type: "mrkdwn",
                 text: `*Scenario Text:* ${bet.scenarioText}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Bet Created:* ${dateCreatedString}`,
+            }
+        ]
+    };
+};
+
+const betAcceptSummaryView = (betAccept, wallet) => {
+    const dateAcceptedString = betAccept.dateAccepted ? new Date(betAccept.dateCreated).toLocaleString() : "?";
+    return {
+        type: "section",
+        fields: [{
+                type: "mrkdwn",
+                text: `*BetID:* ${strikethroughIfInactive(!wallet.betsAreActive, bet._id)}`,
+            },
+            {
+                type: "mrkdwn",
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
+            },
+            {
+                type: "mrkdwn",
+                text: `*Scenario Text:* ${bet.scenarioText}`,
+            }, {
+                type: "mrkdwn",
+                text: `*Bet Created:* ${dateAcceptedString}`,
             }
         ]
     };
@@ -114,7 +141,7 @@ const walletSummaryView = (wallet) => {
         type: "section",
         fields: [{
                 type: "mrkdwn",
-                text: `*WalletID:* ${wallet._id}`,
+                text: `*WalletID:* ${strikethroughIfInactive(!wallet.betsAreActive,wallet._id)}`,
             },
             {
                 type: "mrkdwn",
@@ -122,7 +149,7 @@ const walletSummaryView = (wallet) => {
             },
             {
                 type: "mrkdwn",
-                text: `*Points:* ${wallet.points}`,
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive,wallet.points)}`,
             },
             {
                 type: "mrkdwn",
@@ -184,14 +211,7 @@ const homeViewSummary = (blockArray) => {
 };
 
 const getBetsForWallet = (allBetsForUser, walletId) => {
-    let betsForWallet = [];
-    for (let i = 0; i < allBetsForUser.length; i++) {
-        const betForUser = allBetsForUser[i];
-        if (betForUser.walletId === walletId) {
-            betsForWallet.push(betForUser);
-        }
-    }
-    return betsForWallet;
+    return allBetsForUser.filter(b => b.walletId == walletId);
 }
 
 const walletSortFunc = (a, b) => {
@@ -210,10 +230,22 @@ const walletSortFunc = (a, b) => {
 }
 
 const betSortFunc = (a, b) => {
-    return a.points > b.points;
+    return a.dateCreated > b.dateCreated;
 }
 
-const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) => {
+const betAcceptSortFunc = (a, b) => {
+    return a.dateAccepted > b.dateAccepted;
+}
+
+const getBetAcceptsForBet = (allBetAcceptsForUser, betId) => {
+    return allBetAcceptsForUser.filter(ba => ba.betId == betId);
+}
+
+const getBetAcceptsForWallet = (allBetAcceptsForUser, walletId) => {
+    return allBetAcceptsForUser.filter(ba => ba.walletId == walletId);
+}
+
+const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     let blockArray = [];
     if (DEBUG_MODE) {
         blockArray.push(setMeUpView(channelId));
@@ -227,20 +259,37 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) 
         for (let i = 0; i < walletsForUser.length; i++) {
             const wallet = walletsForUser[i];
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
-            console.log(betsForThisWallet);
+            const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
             blockArray.push(walletSummaryView(wallet));
             if (betsForThisWallet && betsForThisWallet.length > 0) {
                 blockArray.push({
                     type: "section",
                     text: {
                         type: "mrkdwn",
-                        text: "Here are the bets associated with this wallet:",
+                        text: `Here are your created bets in <#${wallet.channelId}>:`,
                     },
                 });
                 betsForThisWallet.sort(betSortFunc);
                 for (let j = 0; j < betsForThisWallet.length; j++) {
                     const thisBet = betsForThisWallet[j];
+                    // TODO This should be bet accepts for OTHER users
+                    //const betAcceptsForUserForThisBet = getBetAcceptsForBet(allBetAcceptsForUser, thisBet._id);
+                    //console.log(betAcceptsForUserForThisBet);
                     blockArray.push(betSummaryView(thisBet, wallet));
+                }
+            }
+            if (betAcceptsForThisWallet && betAcceptsForThisWallet.length > 0) {
+                blockArray.push({
+                    type: "section",
+                    text: {
+                        type: "mrkdwn",
+                        text: `Here are your accepted bets for <#${wallet.channelId}>:`,
+                    },
+                });
+                betAcceptsForThisWallet.sort(betAcceptSortFunc);
+                for (let j = 0; j < betAcceptsForThisWallet.length; j++) {
+                    const thisBetAccept = betAcceptsForThisWallet[j];
+                    blockArray.push(betAcceptSummaryView(thisBetAccept, wallet));
                 }
             }
             blockArray.push(walletActionView(wallet));
