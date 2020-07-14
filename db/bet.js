@@ -75,6 +75,22 @@ exports.getBetByUserChannelScenario = (
   return existingBet;
 };
 
+exports.getBetByPostId = (channelId, postId) => {
+  let existingBet = null;
+  db.find(
+    {
+      channelId: channelId,
+      postId: postId,
+    },
+    (err, results) => {
+      if (results && results.length > 0) {
+        existingBet = results[0];
+      }
+    }
+  );
+  return existingBet;
+};
+
 exports.addBet = (
   slackId,
   channelId,
