@@ -7,7 +7,8 @@ db.onReady = function () {
 
 exports.getBetAcceptById = (betAcceptId) => {
   let existingBetAccept = null;
-  db.find({
+  db.find(
+    {
       _id: betAcceptId,
     },
     (err, results) => {
@@ -21,7 +22,8 @@ exports.getBetAcceptById = (betAcceptId) => {
 
 exports.getAllBetAcceptsForUser = (slackUser) => {
   let existingBetAccepts = [];
-  db.find({
+  db.find(
+    {
       userId: slackUser,
     },
     (err, results) => {
@@ -48,16 +50,25 @@ exports.getAllBetAcceptsForBet = (betId) => {
   return existingBetAccepts;
 };
 
-exports.addBetAccept = (betId, userId, channelId, walletId, pointsBet) => {
+exports.addBetAccept = (
+  betId,
+  userId,
+  channelId,
+  walletId,
+  pointsBet,
+  payout
+) => {
   let existingBetAccept = null;
   //TODO transfer points from wallet to bet
-  db.insertItem({
+  db.insertItem(
+    {
       betId: betId,
       userId: userId,
       channelId: channelId,
       walletId: walletId,
       pointsBet: pointsBet,
-      dateAccepted: Date.now()
+      payout: payout,
+      dateAccepted: Date.now(),
     },
     null,
     (err, results) => {
