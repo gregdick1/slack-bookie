@@ -6,7 +6,7 @@ exports.setup = (app) => {
   // Listen for a slash command invocation
   app.command(
     `/${consts.commandPrefix}bookie-test`,
-    async ({ ack, body, context }) => {
+    async ({ ack, body, context, say }) => {
       // Acknowledge the command request
       await ack();
 
@@ -15,11 +15,9 @@ exports.setup = (app) => {
       const season = walletDb.getCurrentSeason(channel);
       const wallet = walletDb.getWalletForSeason(channel, user, season);
       if (!wallet) {
-        app.client.chat.postMessage({
-          token: context.botToken,
-          channel: channel,
-          text: `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``,
-        });
+        say(
+          `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``
+        );
         return;
       }
 
@@ -95,21 +93,12 @@ exports.setup = (app) => {
     }
   );
 
-  app.action(
-    {
-      action_id: "button_abc",
-    },
-    async ({ body, ack }) => {
-      await ack();
-      console.log(body);
-    }
-  );
-
   // Handle a view_submission event
   app.view("bet_creation", async ({ ack, body, view, context }) => {
     // Acknowledge the view_submission event
     await ack();
 
+    const user = body.user.id;
     const val =
       view["state"]["values"]["bet_scenario"]["dreamy_input"]["value"];
 
@@ -124,25 +113,50 @@ exports.setup = (app) => {
 
     const md = JSON.parse(view.private_metadata);
     const wallet = md.wallet;
+    const channel = wallet.channelId;
 
     if (wallet.points < amount) {
       // TODO message back to user?
       console.log("User doesn't have enough points for bet");
       return;
     }
+    const result = await app.client.chat.postMessage({
+      token: context.botToken,
+      channel: channel,
+      blocks: [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `<@${user}> wants to make a bet!`,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: val,
+          },
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `${amount} pts`,
+          },
+          accessory: {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Accept Bet",
+            },
+            action_id: "accept_bet",
+          },
+        },
+      ],
+    });
 
-    betDb.addBet(user, channel, wallet, val, amount);
-
-    // Message the user
-    // try {
-    //   await app.client.chat.postMessage({
-    //     token: context.botToken,
-    //     channel: user,
-    //     text: msg
-    //   });
-    // }
-    // catch (error) {
-    //   console.error(error);
-    // }
+    const postId = result.ts;
+    betDb.addBet(user, channel, wallet._id, val, amount, postId);
   });
 };
