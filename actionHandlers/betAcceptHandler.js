@@ -35,34 +35,16 @@ exports.setup = (app) => {
               bet: bet,
               wallet: wallet,
             }),
-            blocks: [{
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `<@${bet.slackId}> has bet that...`,
-                },
-              },
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: bet.scenarioText,
-                },
-              },
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `You currently have ${
+            blocks: [blockKitUtilities.markdownSection(`<@${bet.slackId}> has bet that...`),
+              blockKitUtilities.markdownSection(bet.scenarioText),
+              blockKitUtilities.markdownSection(`You currently have ${
                     wallet.points
                   } pts. This bet is for ${
                     bet.pointsBet
                   } pts. You can accept this bet for any amount up to ${Math.min(
                     wallet.points,
                     bet.pointsBet
-                  )} pts.`,
-                },
-              },
+                  )} pts.`),
               {
                 type: "input",
                 block_id: "amount_input",

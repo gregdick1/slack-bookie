@@ -6,7 +6,12 @@ const maxNToDisplay = 10;
 exports.setup = (app) => {
   app.command(
     `/${consts.commandPrefix}bookie-leaderboard`,
-    async ({ ack, body, context, say }) => {
+    async ({
+      ack,
+      body,
+      context,
+      say
+    }) => {
       await ack();
       const channel = body.channel_id;
       const season = walletDb.getCurrentSeason(channel);
@@ -52,22 +57,10 @@ exports.setup = (app) => {
       const txt = `\`\`\`${userLines.map((ul) => ul.text).join("\n")}\`\`\``;
 
       const blocks = [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `Here are the ${
+        blockKitUtilities.markdownSection(`Here are the ${
               sortAscending ? "bottom" : "top"
-            } ${n} wallets for this season`,
-          },
-        },
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: txt,
-          },
-        },
+            } ${n} wallets for this season`),
+        blockKitUtilities.markdownSection(txt)
       ];
 
       app.client.chat.postMessage({
