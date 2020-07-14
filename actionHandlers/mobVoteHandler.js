@@ -2,7 +2,7 @@ const mobVote = require("../db/mobVote");
 const wallet = require("../db/wallet");
 const consts = require("../consts");
 
-const resetChannel = async (channel, app, context, botId) => {
+const resetChannel = async (channel, app, context) => {
   const result = await app.client.conversations.members({
     token: context.botToken,
     channel: channel,
@@ -10,36 +10,39 @@ const resetChannel = async (channel, app, context, botId) => {
 
   const currentSeason = wallet.getCurrentSeason(channel);
   result.members.forEach((item, index) => {
-    if (item === botId) {
+    if (item === consts.botId) {
       return;
     }
     wallet.addWallet(channel, item, consts.defaultPoints, currentSeason + 1);
   });
 };
 
-exports.setup = (app, botId) => {
+exports.setup = (app) => {
   // Listen for a slash command invocation
-  app.command("/bookie-channel-reset", async ({ ack, body, context, say }) => {
-    // Acknowledge the command request
-    await ack();
+  app.command(
+    `/${consts.commandPrefix}bookie-channel-reset`,
+    async ({ ack, body, context, say }) => {
+      // Acknowledge the command request
+      await ack();
 
-    let result = await say(
-      "A vote to reset the bookie wallets in this channel has been initiated! React with :yes: to vote for a reset. If half the channel votes :yes: within the next 24 hours, the reset will happen."
-    );
-    channel = result.channel;
-    postId = result.ts;
-    let lockoutTime = new Date();
-    lockoutTime.setDate(lockoutTime.getDate() + 1);
+      let result = await say(
+        "A vote to reset the bookie wallets in this channel has been initiated! React with :yes: to vote for a reset. If half the channel votes :yes: within the next 24 hours, the reset will happen."
+      );
+      channel = result.channel;
+      postId = result.ts;
+      let lockoutTime = new Date();
+      lockoutTime.setDate(lockoutTime.getDate() + 1);
 
-    result = await app.client.conversations.members({
-      token: context.botToken,
-      channel: channel,
-    });
-    votesNeeded = (result.members.length - 1) / 2; //minus one accounts for the bot itself
-    //We might end up with a number like 10.5, but that's okay because our logic later will still require 11 votes and that's what we want
+      result = await app.client.conversations.members({
+        token: context.botToken,
+        channel: channel,
+      });
+      votesNeeded = (result.members.length - 1) / 2; //minus one accounts for the bot itself
+      //We might end up with a number like 10.5, but that's okay because our logic later will still require 11 votes and that's what we want
 
-    mobVote.createMobVote(channel, postId, "reset", lockoutTime, votesNeeded);
-  });
+      mobVote.createMobVote(channel, postId, "reset", lockoutTime, votesNeeded);
+    }
+  );
 
   app.event("reaction_added", async ({ message, context, body, say }) => {
     // See if it's a mob vote that can still be voted on
@@ -68,7 +71,7 @@ exports.setup = (app, botId) => {
         });
 
         if (yesVotes >= votePost.votesNeeded) {
-          await resetChannel(votePost.channelId, app, context, botId);
+          await resetChannel(votePost.channelId, app, context);
           say(
             `The people have spoken! The channel has been reset and everybody now has ${consts.defaultPoints} points.`
           );

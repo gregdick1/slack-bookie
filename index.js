@@ -13,11 +13,9 @@ const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
 });
 
-const botId = process.env.SLACK_BOT_ID;
-
 betModal.setup(app);
 betHandler.setup(app);
-mentionHandler.setup(app, botId);
+mentionHandler.setup(app);
 mobVoteHandler.setup(app);
 
 app.event("app_home_opened", ({ event, say }) => {

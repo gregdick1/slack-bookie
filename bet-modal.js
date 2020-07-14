@@ -1,95 +1,99 @@
 const betDb = require("./db/bet");
 const walletDb = require("./db/wallet");
+const consts = require("./consts");
 
 exports.setup = (app) => {
   // Listen for a slash command invocation
-  app.command("/rh-bookie-test", async ({ ack, body, context }) => {
-    // Acknowledge the command request
-    await ack();
+  app.command(
+    `/${consts.commandPrefix}bookie-test`,
+    async ({ ack, body, context }) => {
+      // Acknowledge the command request
+      await ack();
 
-    const user = body.user_id;
-    const channel = body.channel_id;
-    const season = walletDb.getCurrentSeason(channel);
-    const wallet = walletDb.getWalletForSeason(channel, user, season);
-    if (!wallet) {
-      app.client.chat.postMessage({
-        token: context.botToken,
-        channel: channel,
-        text: `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``,
-      });
-      return;
-    }
+      const user = body.user_id;
+      const channel = body.channel_id;
+      const season = walletDb.getCurrentSeason(channel);
+      const wallet = walletDb.getWalletForSeason(channel, user, season);
+      if (!wallet) {
+        app.client.chat.postMessage({
+          token: context.botToken,
+          channel: channel,
+          text: `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``,
+        });
+        return;
+      }
 
-    try {
-      const result = await app.client.views.open({
-        token: context.botToken,
-        // Pass a valid trigger_id within 3 seconds of receiving it
-        trigger_id: body.trigger_id,
-        // View payload
-        view: {
-          type: "modal",
-          // View identifier
-          callback_id: "bet_creation",
-          title: {
-            type: "plain_text",
-            text: "Create a Bet",
+      try {
+        const result = await app.client.views.open({
+          token: context.botToken,
+          // Pass a valid trigger_id within 3 seconds of receiving it
+          trigger_id: body.trigger_id,
+          // View payload
+          view: {
+            type: "modal",
+            // View identifier
+            callback_id: "bet_creation",
+            title: {
+              type: "plain_text",
+              text: "Create a Bet",
+            },
+            private_metadata: JSON.stringify({
+              wallet: wallet,
+            }),
+            blocks: [
+              {
+                type: "section",
+                text: {
+                  type: "mrkdwn",
+                  text: "Let's make a bet!",
+                }, //,
+                // accessory: {
+                //   type: 'button',
+                //   text: {
+                //     type: 'plain_text',
+                //     text: 'Click me!'
+                //   },
+                //   action_id: 'button_abc'
+                // }
+              },
+              {
+                type: "input",
+                block_id: "bet_scenario",
+                label: {
+                  type: "plain_text",
+                  text: "I bet that...",
+                },
+                element: {
+                  type: "plain_text_input",
+                  action_id: "dreamy_input",
+                  multiline: true,
+                },
+              },
+              {
+                type: "input",
+                block_id: "amount_input",
+                label: {
+                  type: "plain_text",
+                  text: "How many points?",
+                },
+                element: {
+                  type: "plain_text_input",
+                  action_id: "amount_input",
+                },
+              },
+            ],
+            submit: {
+              type: "plain_text",
+              text: "Submit",
+            },
           },
-          private_metadata: JSON.stringify({
-            wallet: wallet,
-          }),
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: "Let's make a bet!",
-              }, //,
-              // accessory: {
-              //   type: 'button',
-              //   text: {
-              //     type: 'plain_text',
-              //     text: 'Click me!'
-              //   },
-              //   action_id: 'button_abc'
-              // }
-            },
-            {
-              type: "input",
-              block_id: "bet_scenario",
-              label: {
-                type: "plain_text",
-                text: "I bet that...",
-              },
-              element: {
-                type: "plain_text_input",
-                action_id: "dreamy_input",
-                multiline: true,
-              },
-            },
-            {
-              type: "input",
-              block_id: "amount_input",
-              label: {
-                type: "plain_text",
-                text: "How many points?",
-              },
-              element: {
-                type: "plain_text_input",
-                action_id: "amount_input",
-              },
-            },
-          ],
-          submit: {
-            type: "plain_text",
-            text: "Submit",
-          },
-        },
-      });
-      console.log(result);
-    } catch (error) {
-      console.error(error);
+        });
+        console.log(result);
+      } catch (error) {
+        console.error(error);
+      }
     }
-  });
+  );
 
   app.action(
     {

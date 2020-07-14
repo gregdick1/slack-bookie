@@ -1,14 +1,10 @@
 const wallet = require("../db/wallet");
 const consts = require("../consts");
 
-exports.setup = (app, botId) => {
+exports.setup = (app) => {
   app.message(
-    `<@${botId}> Let's gamble!`,
-    async ({
-      message,
-      context,
-      say
-    }) => {
+    `<@${consts.botId}> Let's gamble!`,
+    async ({ message, context, say }) => {
       //TODO set up bot id as config or pull it during app startup or something
       const channel = message.channel;
       if (wallet.getCurrentSeason(channel) !== 0) {
@@ -19,7 +15,7 @@ exports.setup = (app, botId) => {
           channel: message.channel,
         });
         result.members.forEach((item, index) => {
-          if (item === botId) {
+          if (item === consts.botId) {
             return;
           }
           wallet.addWallet(channel, item, consts.defaultPoints, 1);
