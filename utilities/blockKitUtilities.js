@@ -24,8 +24,26 @@ exports.markdownSectionWithAccessoryImage = (textForSection, imageUrl, imageAltT
             image_url: imageUrl,
             alt_text: imageAltText,
         },
-    }
-}
+    };
+};
+
+exports.markdownSectionWithAccessoryButton = (textForSection, buttonText, buttonActionId) => {
+    return {
+        type: "section",
+        text: {
+            type: "mrkdwn",
+            text: textForSection,
+        },
+        accessory: {
+            type: "button",
+            text: {
+                type: "plain_text",
+                text: buttonText,
+            },
+            action_id: buttonActionId,
+        },
+    };
+};
 
 exports.markdownWithFieldsSection = (arrayOfTextFields) => {
     let arrayFields = [];
