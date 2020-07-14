@@ -23,7 +23,8 @@ db.onReady = function () {
 
 exports.getCurrentSeason = (channelId) => {
   let latestSeason = 0;
-  db.find({
+  db.find(
+    {
       channelId: channelId,
     },
     (err, results) => {
@@ -41,7 +42,8 @@ exports.getCurrentSeason = (channelId) => {
 
 exports.getWalletById = (walletId) => {
   let existingWallet = null;
-  db.find({
+  db.find(
+    {
       _id: walletId,
     },
     (err, results) => {
@@ -56,7 +58,8 @@ exports.getWalletById = (walletId) => {
 exports.getWallet = (channelId, slackId) => {
   let existingWallet = null;
   const season = this.getCurrentSeason(channelId);
-  db.find({
+  db.find(
+    {
       slackId: slackId,
       channelId: channelId,
       season: season,
@@ -70,7 +73,8 @@ exports.getWallet = (channelId, slackId) => {
 
 exports.getWalletForSeason = (channelId, slackId, season) => {
   let existingWallet = null;
-  db.find({
+  db.find(
+    {
       slackId: slackId,
       channelId: channelId,
       season: season,
@@ -86,7 +90,8 @@ exports.getWalletForSeason = (channelId, slackId, season) => {
 
 exports.getAllWalletsForUser = (slackId, includeRetired) => {
   let allWalletsForUser = null;
-  db.find({
+  db.find(
+    {
       slackId: slackId,
     },
     (err, results) => {
@@ -124,7 +129,8 @@ exports.addWallet = (channelId, slackId, points, season) => {
   if (existingWallet !== null) {
     return existingWallet;
   }
-  db.insertItem({
+  db.insertItem(
+    {
       slackId: slackId,
       channelId: channelId,
       points: points,
@@ -146,7 +152,8 @@ exports.save = () => {
 
 exports.getAllWalletsForSeason = (channelId, season, includeRetired) => {
   let allWallets = [];
-  db.find({
+  db.find(
+    {
       channelId,
       season,
     },
@@ -162,4 +169,22 @@ exports.getAllWalletsForSeason = (channelId, season, includeRetired) => {
     allWallets = allWallets.filter((w) => !w.retired);
   }
   return allWallets;
+};
+
+exports.updateBalance = (walletId, amount) => {
+  db.find(
+    {
+      _id: walletId,
+    },
+    (err, results) => {
+      if (results !== undefined) {
+        const wallet = results[0];
+        wallet.points += amount;
+        db.flush();
+        return wallet;
+      } else {
+        return undefined;
+      }
+    }
+  );
 };

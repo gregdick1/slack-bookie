@@ -6,12 +6,14 @@ db.onReady = function () {
 };
 
 const addPostUrl = (bet) => {
-  bet.postUrl = `https://hudl.slack.com/archives/${bet.channelId}/p${bet.postId}`;
+  if (bet) {
+    bet.postUrl = `https://hudl.slack.com/archives/${bet.channelId}/p${bet.postId}`;
+  }
   return bet;
 };
 
 const addPostUrls = (bets) => {
-  bets.forEach(bet => addPostUrl(bet));
+  bets.forEach((bet) => addPostUrl(bet));
   return bets;
 };
 
@@ -141,6 +143,28 @@ exports.addBet = (
 
 exports.save = () => {
   db.flush();
+};
+
+exports.setBetStatus = (betId, status) => {
+  if ([this.statusOpen, this.statusClosed, this.statusFinished, this.statusCanceled].findIndex(status) < 0) {
+    throw new Error("Invalid bet status");
+  }
+
+  db.find(
+    {
+      _id: betId,
+    },
+    (err, results) => {
+      if (results !== undefined) {
+        const bet = results[0];
+        bet.status = status;
+        db.flush();
+        return bet;
+      } else {
+        return undefined;
+      }
+    }
+  );
 };
 
 exports.statusOpen = "open";

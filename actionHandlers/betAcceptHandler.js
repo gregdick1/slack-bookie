@@ -3,19 +3,22 @@ const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 
 exports.setup = (app) => {
-  app.action({
+  app.action(
+    {
       action_id: "accept_bet",
     },
-    async ({
-      body,
-      ack,
-      context
-    }) => {
+    async ({ body, ack, context }) => {
       await ack();
       try {
         const postId = body.message.ts;
         const channel = body.channel.id;
         const bet = betDb.getBetByPostId(channel, postId);
+        const existingAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
+        const currentKitty = existingAccepts.reduce(
+          (a1, a2) => a1.pointsBet + a2.pointsBet,
+          0
+        );
+        const remainingBet = bet.pointsBet - currentKitty;
 
         const wallet = walletDb.getWallet(channel, body.user.id);
         const result = await app.client.views.open({
@@ -33,9 +36,11 @@ exports.setup = (app) => {
             },
             private_metadata: JSON.stringify({
               bet: bet,
+              kitty: currentKitty,
               wallet: wallet,
             }),
-            blocks: [{
+            blocks: [
+              {
                 type: "section",
                 text: {
                   type: "mrkdwn",
@@ -55,11 +60,9 @@ exports.setup = (app) => {
                   type: "mrkdwn",
                   text: `You currently have ${
                     wallet.points
-                  } pts. This bet is for ${
-                    bet.pointsBet
-                  } pts. You can accept this bet for any amount up to ${Math.min(
+                  } pts. This bet has ${remainingBet} pts remainig. You can accept this bet for any amount up to ${Math.min(
                     wallet.points,
-                    bet.pointsBet
+                    remainingBet
                   )} pts.`,
                 },
               },
@@ -89,35 +92,43 @@ exports.setup = (app) => {
   );
 
   // Handle a view_submission event
-  app.view("bet_acception", async ({
-    ack,
-    body,
-    view,
-    context
-  }) => {
-    // Acknowledge the view_submission event
-    await ack();
-
+  app.view("bet_acception", async ({ ack, body, view, context }) => {
     const user = body.user.id;
 
     const amountInput =
       view["state"]["values"]["amount_input"]["amount_input"]["value"];
     const amount = parseInt(amountInput, 10);
-    if (isNaN(amount)) {
-      // TODO: what should we send back to the user?
-      console.log("Invalid input amount. Bailing");
-      return;
-    }
 
     const md = JSON.parse(view.private_metadata);
     const bet = md.bet;
     const wallet = md.wallet;
+    const remainingBet = bet.pointsBet - md.kitty;
     const channel = bet.channelId;
 
-    if (wallet.points < amount) {
-      // TODO message back to user?
-      console.log("User doesn't have enough points for bet");
+    let errors = undefined;
+
+    if (isNaN(amount)) {
+      errors = {
+        amount_input: "Please input a valid number of points",
+      };
+    } else if (wallet.points < amount) {
+      errors = {
+        amount_input: `You only have ${wallet.points} points in your wallet!`,
+      };
+    } else if (remainingBet < amount) {
+      errors = {
+        amount_input: `This bet only has ${remainingBet} points remaining. You can't wager ${amount} points!`,
+      };
+    }
+
+    if (errors !== undefined) {
+      await ack({
+        response_action: "errors",
+        errors,
+      });
       return;
+    } else {
+      await ack();
     }
 
     //threaded reply to the bet post
@@ -139,5 +150,12 @@ exports.setup = (app) => {
       amount,
       payout
     );
+    walletDb.updateBalance(wallet._id, -amount);
+
+    const totalPaid = md.kitty + amount;
+    if (totalPaid == bet.pointsBet) {
+      betDb.setBetStatus(bet._id, betDb.statusClosed);
+      console.log("Bet is closed! Wahoo!");
+    }
   });
 };

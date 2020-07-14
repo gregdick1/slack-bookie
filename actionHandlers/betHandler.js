@@ -178,6 +178,7 @@ exports.setupBets = (app) => {
 
     const postId = result.ts;
     betDB.addBet(user, channel, wallet._id, val, amount, postId);
+    walletDB.updateBalance(wallet._id, -amount);
   });
 };
 
