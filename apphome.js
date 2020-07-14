@@ -66,11 +66,6 @@ const sumThing = (arrayToSum, propToSum) => {
 
 const summaryBlock = (walletsForUser, betsForUser) => {
     const betCount = betsForUser ? betsForUser.length : 0;
-    for (let i = 0; i < walletsForUser.length; i++) {
-        const wal = walletsForUser[i];
-        const currentSeason = walletDB.getCurrentSeason(wal.channelId);
-        wal.isActiveSeason = wal.season === currentSeason;
-    }
     const activeWallets = walletsForUser.filter(w => w.isActiveSeason);
     const inactiveWallets = walletsForUser.filter(w => !w.isActiveSeason);
     const activeWalletCount = activeWallets ? activeWallets.length : 0;
@@ -91,16 +86,20 @@ You have ${betCount} outstanding bets for a total of ${totalBetPoints} points.
     };
 };
 
-const betSummaryView = (bet) => {
+const strikethroughIfInactive = (strikeIfMeTrue, stringToStrike) => {
+    return `${strikeIfMeTrue ? '~' : ''}${stringToStrike}${strikeIfMeTrue ? '~' : ''}`;
+}
+
+const betSummaryView = (bet, wallet) => {
     return {
         type: "section",
         fields: [{
                 type: "mrkdwn",
-                text: `*BetID:* ${bet._id}`,
+                text: `*BetID:* ${strikethroughIfInactive(!wallet.betsAreActive, bet._id)}`,
             },
             {
                 type: "mrkdwn",
-                text: `*Points:* ${bet.pointsBet}`,
+                text: `*Points:* ${strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
             },
             {
                 type: "mrkdwn",
@@ -123,7 +122,7 @@ const walletSummaryView = (wallet) => {
             },
             {
                 type: "mrkdwn",
-                text: `*Scenario:* ${wallet.points}`,
+                text: `*Points:* ${wallet.points}`,
             },
             {
                 type: "mrkdwn",
@@ -195,6 +194,25 @@ const getBetsForWallet = (allBetsForUser, walletId) => {
     return betsForWallet;
 }
 
+const walletSortFunc = (a, b) => {
+    if (a.isActiveSeason > b.isActiveSeason) {
+        return -1; // a = active, b = not. active seasons first
+    } else if (a.isActiveSeason < b.isActiveSeason) {
+        return 1; // a = not, b = active, active seasons first
+    } else if (!!a.retired < !!b.retired) {
+        return -1; // a = not, b = retired, notretired first
+    } else if (!!a.retired > !!b.retired) {
+        return 1; // a = retired, b = not, notretired first
+    } else {
+        // if a has more points than b, it should be first
+        return b.points - a.points;
+    }
+}
+
+const betSortFunc = (a, b) => {
+    return a.points > b.points;
+}
+
 const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) => {
     let blockArray = [];
     if (DEBUG_MODE) {
@@ -205,6 +223,7 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) 
     if (walletsForUser) {
         blockArray.push(summaryBlock(walletsForUser, allBetsForUser));
         blockArray.push(dividerBlock);
+        walletsForUser.sort(walletSortFunc);
         for (let i = 0; i < walletsForUser.length; i++) {
             const wallet = walletsForUser[i];
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
@@ -218,9 +237,10 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser) 
                         text: "Here are the bets associated with this wallet:",
                     },
                 });
+                betsForThisWallet.sort(betSortFunc);
                 for (let j = 0; j < betsForThisWallet.length; j++) {
                     const thisBet = betsForThisWallet[j];
-                    blockArray.push(betSummaryView(thisBet));
+                    blockArray.push(betSummaryView(thisBet, wallet));
                 }
             }
             blockArray.push(walletActionView(wallet));
