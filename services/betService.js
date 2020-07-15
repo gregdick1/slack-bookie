@@ -1,13 +1,17 @@
 const walletDB = require("../db/wallet");
 const betDB = require("../db/bet");
+const betAcceptDB = require("../db/betAccept");
 
-exports.closeBet = (bet, betAccepts, result) => {
+exports.closeBet = (betId, result) => {
+  const bet = betDB.getBetById(betId);
+  const betAccepts = betAcceptDB.getAllBetAcceptsForBet(betId);
+
   if (["yes", "no"].includes(result)) {
     bet.status = betDB.statusFinished;
-  } else if (result === "inconclusive") {
+  } else if (["inconclusive", "cancel"].includes(result)) {
     bet.status = betDB.statusCanceled;
   }
-  betDB.save();
+  betDB.save(); 
 
   if (result === "yes") {
     //Creator is winner. They get points from the bet accepts as well as the original bet points back
@@ -35,4 +39,6 @@ exports.closeBet = (bet, betAccepts, result) => {
     });
     walletDB.save();
   }
+
+  return bet;
 };

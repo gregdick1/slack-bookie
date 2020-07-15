@@ -24,7 +24,7 @@ exports.handleDisputeVoteResult = async (app, body, context, betId, result) => {
   const bet = betDB.getBetById(betId);
   const channel = bet.channelId;
   const betAccepts = betAcceptDB.getAllBetAcceptsForBet(betId);
-  betService.closeBet(bet, betAccepts, result);
+  betService.closeBet(bet, result);
 
   let usersToPing = [bet.userId, ...betAccepts.map(ba => ba.userId)];
   usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
@@ -189,7 +189,7 @@ exports.setup = (app) => {
         message = `Hey ${usersToPing.join(
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
-        betService.closeBet(bet, betAccepts, result);
+        betService.closeBet(bet, result);
 
         await app.client.chat.update({
           token: context.botToken,
