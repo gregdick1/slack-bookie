@@ -9,3 +9,7 @@ exports.strikethroughIfInactive = (strikeIfMeTrue, stringToStrike) => {
 exports.formatDate = (epochDate) => {
     return epochDate ? new Date(epochDate).toLocaleString() : "?";
 };
+
+exports.formatSlackUserId = (slackUserId) => {
+    return `<@${slackUserId}>`;
+}

@@ -19,7 +19,7 @@ exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUse
 const publishHomeView = async (args) => {
     await axios
         .post(`${consts.apiBase}/views.publish`, qs.stringify(args))
-        .then(function (response) {})
+        .then(function (response) { })
         .catch(function (error) {
             console.log(error);
         });
@@ -82,11 +82,11 @@ const betAcceptSummaryView = (betAccept, wallet) => {
     const bet = betDB.getBetById(betAccept.betId);
     const dateCreatedString = utilities.formatDate(bet.dateCreated);
     const demFields = [
-        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)}`,
-        `*Bet Text:* ${bet.scenarioText}`,
+        blockKitUtilities.formatField('Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)),
+        blockKitUtilities.formatField('Bet Text', bet.scenarioText),
         `*Bet Created:* ${dateCreatedString}`,
         `*Bet Accepted:* ${dateAcceptedString}`,
-        `*Bet Creator:* <@${bet.slackId}>`,
+        `*Bet Creator:* ${utilities.formatSlackUserId(bet.slackId)}`,
         `*Original Post:* <${bet.postUrl}|Open>`,
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
@@ -95,8 +95,8 @@ const betAcceptSummaryView = (betAccept, wallet) => {
 const walletSummaryView = (wallet) => {
     const initialPoints = wallet.initialPointBalance ? wallet.initialPointBalance : consts.defaultPoints;
     const demFields = [
-        `*Channel:* <#${wallet.channelId}>`,
-        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive,wallet.points)}`,
+        `* Channel:* <#${wallet.channelId}>`,
+        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive, wallet.points)}`,
         `*Season:* ${wallet.season}`,
         `*Retired:* ${wallet.retired ? true : false}`,
         `*Is Active:* ${wallet.isActiveSeason ? true : false}`,

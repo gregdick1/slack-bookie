@@ -1,11 +1,12 @@
 const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
+const utilities = require('../utilities/utilities');
 
 exports.setup = (app) => {
   app.action({
-      action_id: "submit_results_from_channel",
-    },
+    action_id: "submit_results_from_channel",
+  },
     async ({
       body,
       ack,
@@ -35,48 +36,48 @@ exports.setup = (app) => {
             private_metadata: JSON.stringify({
               bet: bet,
             }),
-            blocks: [blockKitUtilities.markdownSection(`<@${bet.slackId}> bet that...`),
-              blockKitUtilities.markdownSection(bet.scenarioText), {
-                type: "input",
-                label: {
+            blocks: [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.slackId)} bet that...`),
+            blockKitUtilities.markdownSection(bet.scenarioText), {
+              type: "input",
+              label: {
+                type: "plain_text",
+                text: "Did it happen?",
+              },
+              block_id: "bet_result",
+              element: {
+                type: "static_select",
+                placeholder: {
                   type: "plain_text",
                   text: "Did it happen?",
                 },
-                block_id: "bet_result",
-                element: {
-                  type: "static_select",
-                  placeholder: {
+                action_id: "bet_result_input",
+                options: [{
+                  text: {
                     type: "plain_text",
-                    text: "Did it happen?",
+                    text: ":yes:",
+                    emoji: true,
                   },
-                  action_id: "bet_result_input",
-                  options: [{
-                      text: {
-                        type: "plain_text",
-                        text: ":yes:",
-                        emoji: true,
-                      },
-                      value: "yes",
-                    },
-                    {
-                      text: {
-                        type: "plain_text",
-                        text: ":no:",
-                        emoji: true,
-                      },
-                      value: "no",
-                    },
-                    {
-                      text: {
-                        type: "plain_text",
-                        text: "Inconclusive :notsureif:",
-                        emoji: true,
-                      },
-                      value: "cancel",
-                    },
-                  ],
+                  value: "yes",
                 },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: ":no:",
+                    emoji: true,
+                  },
+                  value: "no",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: "Inconclusive :notsureif:",
+                    emoji: true,
+                  },
+                  value: "cancel",
+                },
+                ],
               },
+            },
             ],
             submit: {
               type: "plain_text",
@@ -183,7 +184,7 @@ exports.setup = (app) => {
     } else if (sideToMessage === "acceptor") {
       usersToPing.push(...betAcceptUsers);
     }
-    usersToPing = usersToPing.map((x) => `<@${x}>`);
+    usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
 
     let resultDisplay = "";
     if (result === "yes") {
@@ -255,7 +256,7 @@ exports.setup = (app) => {
 
     const val =
       view["state"]["values"]["bet_result"]["bet_result_input"][
-        "selected_option"
+      "selected_option"
       ]["value"];
     await handle_submit_results(body, context, val);
   });

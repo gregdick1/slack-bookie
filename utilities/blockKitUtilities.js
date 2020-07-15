@@ -12,6 +12,10 @@ exports.markdownSection = (textForSection) => {
     };
 };
 
+exports.formatField = (fieldName, text) => {
+    return `*${fieldName}:* ${text}`;
+}
+
 exports.markdownSectionWithAccessoryImage = (textForSection, imageUrl, imageAltText) => {
     return {
         type: "section",
@@ -75,6 +79,6 @@ exports.buttonAction = (blockId, buttonText, actionId, buttonStyle) => {
             },
             style: buttonStyle,
             action_id: actionId,
-        }, ],
+        },],
     }
 }
