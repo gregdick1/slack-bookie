@@ -222,7 +222,7 @@ exports.setup = (app) => {
         acceptorSideResults.includes(creatorSideResults[0])
       ) {
         //There is consensus. Close the bet
-        usersToPing = [userId, ...betAcceptUsers];
+        usersToPing = [bet.userId, ...betAcceptUsers];
         usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
         message = `Hey ${usersToPing.join(
           ", "
