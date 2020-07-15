@@ -5,92 +5,95 @@ const utilities = require('../utilities/utilities');
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 
-exports.setup = (app) => {
-  app.action({
-    action_id: "submit_results_from_channel",
-  },
-    async ({
-      body,
-      ack,
-      context
-    }) => {
-      await ack();
-      try {
-        const postId = body.message.ts;
-        const channel = body.channel.id;
-        const bet = betDB.getBetByPostId(channel, postId);
+exports.handleSubmitResultsFromChannel = async (app, body, context) => {
+  try {
+    const postId = body.message.ts;
+    const channel = body.channel.id;
+    const bet = betDB.getBetByPostId(channel, postId);
 
-        //TODO check if user is associated with the bet
+    //TODO check if user is associated with the bet
 
-        const result = await app.client.views.open({
-          token: context.botToken,
-          // Pass a valid trigger_id within 3 seconds of receiving it
-          trigger_id: body.trigger_id,
-          // View payload
-          view: {
-            type: "modal",
-            // View identifier
-            callback_id: "results_submission",
-            title: {
-              type: "plain_text",
-              text: "Tell me what happened",
-            },
-            private_metadata: JSON.stringify({
-              bet: bet,
-            }),
-            blocks: [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} bet that...`),
-            blockKitUtilities.markdownSection(bet.scenarioText),
-            {
-              type: "input",
-              label: {
-                type: "plain_text",
-                text: "Did it happen?",
-              },
-              block_id: "bet_result",
-              element: {
-                type: "static_select",
-                placeholder: {
-                  action_id: "bet_result_input",
-                  options: [{
-                    text: {
-                      type: "plain_text",
-                      text: ":yes:",
-                      emoji: true,
-                    },
-                    value: "yes",
-                  },
-                  {
-                    text: {
-                      type: "plain_text",
-                      text: ":no:",
-                      emoji: true,
-                    },
-                    value: "no",
-                  },
-                  {
-                    text: {
-                      type: "plain_text",
-                      text: "Inconclusive :notsureif:",
-                      emoji: true,
-                    },
-                    value: "cancel",
-                  },
-                  ],
-                },
-              },
-            }],
-            submit: {
-              type: "plain_text",
-              text: "Submit",
-            },
+    const result = await app.client.views.open({
+      token: context.botToken,
+      // Pass a valid trigger_id within 3 seconds of receiving it
+      trigger_id: body.trigger_id,
+      // View payload
+      view: {
+        type: "modal",
+        // View identifier
+        callback_id: "results_submission",
+        title: {
+          type: "plain_text",
+          text: "Tell me what happened",
+        },
+        private_metadata: JSON.stringify({
+          bet: bet,
+        }),
+        blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
+        blockKitUtilities.markdownSection(bet.scenarioText), {
+          type: "input",
+          label: {
+            type: "plain_text",
+            text: "Did it happen?",
           },
-        });
-        console.log(result);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  );
+          private_metadata: JSON.stringify({
+            bet: bet,
+          }),
+          blocks: [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} bet that...`),
+          blockKitUtilities.markdownSection(bet.scenarioText),
+          {
+            type: "input",
+            label: {
+              type: "plain_text",
+              text: "Did it happen?",
+            },
+            block_id: "bet_result",
+            element: {
+              type: "static_select",
+              placeholder: {
+                action_id: "bet_result_input",
+                options: [{
+                  text: {
+                    type: "plain_text",
+                    text: ":yes:",
+                    emoji: true,
+                  },
+                  value: "yes",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: ":no:",
+                    emoji: true,
+                  },
+                  value: "no",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: "Inconclusive :notsureif:",
+                    emoji: true,
+                  },
+                  value: "cancel",
+                },
+                ],
+              },
+            },
+          }],
+        },
+        ],
+        submit: {
+          type: "plain_text",
+          text: "Submit",
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+exports.setup = (app) => {
 
   //Probably a better home for this logic
   //Note this method assumes the caller has pulled a fresh version of the bet
@@ -210,7 +213,7 @@ exports.setup = (app) => {
       ) {
         //There is consensus. Close the bet
         usersToPing = [userId, ...betAcceptUsers];
-        usersToPing = usersToPing.map((x) => `<@${x}>`);
+        usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
         message = `Hey ${usersToPing.join(
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
@@ -220,7 +223,7 @@ exports.setup = (app) => {
           token: context.botToken,
           channel: bet.channelId,
           ts: bet.postId,
-          blocks: betViewUtilities.getBetPostView(bet, 'Finished', 0),
+          blocks: betViewUtilities.getBetPostView(bet, betDB.statusFinished, 0),
         });
       } else if (
         creatorSideResults.length > 0 &&
@@ -228,13 +231,13 @@ exports.setup = (app) => {
       ) {
         //There is a dispute
         message =
-          `Hey ${usersToPing.join(", ")},\n<@${userId}> has said the` +
+          `Hey ${usersToPing.join(", ")},\n${utilities.formatSlackUserId(userId)} has said the` +
           ` result of this bet was ${resultDisplay} which means we have a dispute. You or they can resubmit your vote to change if there was a mistake. Otherwise, resubmit and choose to send it to the mob for a vote to resolve this bet.`;
       }
     } else if (bet.result_submissions.length === 1) {
       //Tell the other side to confirm or dispute
       message =
-        `Hey ${usersToPing.join(", ")},\n<@${userId}> has said the` +
+        `Hey ${usersToPing.join(", ")},\n${utilities.formatSlackUserId(userId)} has said the` +
         ` result of this bet was ${resultDisplay}. Please submit a result to confirm and complete the bet, or dispute it by selecting a different result. Parties can change their voted result until they match, or send the dispute to a mob vote in the channel.`;
     }
 

@@ -3,6 +3,16 @@ const utilities = require('./utilities');
 const betDB = require("../db/bet");
 
 exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
+
+  let overflowOptions = [];
+  if (statusDisplay === betDB.statusOpen) {
+    overflowOptions.push(blockKitUtilities.overflowOption('Accept Bet', 'accept_bet'));
+  }
+
+  overflowOptions.push(blockKitUtilities.overflowOption('Submit Results', 'submit_results'));
+
+  overflowOptions.push(blockKitUtilities.overflowOption('Cancel Bet', 'cancel_bet'));
+
   const blocks = [
     blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} wants to make a bet!`),
     blockKitUtilities.divider(),
@@ -10,9 +20,13 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
 
   if (statusDisplay === betDB.statusOpen) {
     blocks.push(blockKitUtilities.markdownSectionWithAccessoryButton(bet.scenarioText, "Accept Bet", "accept_bet"));
+  } else if (statusDisplay !== betDB.statusFinished) {
+    const sectionWithOverflow = blockKitUtilities.markdownSectionWithOverflow(bet.scenarioText, 'bet_action', 'bet_action_from_channel', overflowOptions);
+    blocks.push(sectionWithOverflow);
   } else {
     blocks.push(blockKitUtilities.markdownSection(bet.scenarioText));
   }
+
   blocks.push(blockKitUtilities.divider());
 
   let finishedText = '';
