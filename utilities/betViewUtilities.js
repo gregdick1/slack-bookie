@@ -29,7 +29,7 @@ exports.getBetPostView = (bet, status, pointsRemaining) => {
 
   let finishedText = '';
   if (status === betDB.statusFinished) {
-    finishedText = blockKitUtilities.formatField("Result", "Implement Me");
+    finishedText = blockKitUtilities.formatField("Result", this.betOutcomeDisplay(bet.outcome));
   }
 
   const statusField = blockKitUtilities.formatField("Status", this.formatBetStatus(status));
@@ -72,4 +72,16 @@ exports.betStatusDisplay = (status) => {
 
 exports.formatBetStatus = (status) => {
   return this.betStatusEmoji(status) + ' ' + this.betStatusDisplay(status);
+}
+
+exports.betOutcomeDisplay = (outcome, flipPerspective) => {
+  if (flipPerspective === undefined) {
+    flipPerspective = false;
+  }
+  if (outcome === betDB.outcomeCreatorWon) {
+    return flipPerspective ? "Lost" : "Won";
+  } else if (outcome === betDB.outcomeCreatorLost) {
+    return flipPerspective ? "Won" : "Lost";
+  }
+  return "??";
 }

@@ -65,7 +65,7 @@ exports.setup = (app) => {
     const md = JSON.parse(view.private_metadata);
     const channel = md.bet.channelId;
 
-    const updatedBet = betService.closeBet(md.bet._id, "cancel");
+    const { updatedBet } = betService.closeBet(md.bet._id, "cancel");
     const closeMessage = `${utilities.formatSlackUserId(user)} has cancelled this bet.`
     await app.client.chat.postMessage({
       token: context.botToken,

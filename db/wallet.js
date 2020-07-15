@@ -172,19 +172,19 @@ exports.getAllWalletsForSeason = (channelId, season, includeRetired) => {
 };
 
 exports.updateBalance = (walletId, amount) => {
+  let wallet = null;
   db.find(
     {
       _id: walletId,
     },
     (err, results) => {
       if (results !== undefined) {
-        const wallet = results[0];
+        wallet = results[0];
         wallet.points += amount;
         db.flush();
         return wallet;
-      } else {
-        return undefined;
       }
     }
   );
+  return wallet;
 };
