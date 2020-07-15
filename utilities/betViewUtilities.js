@@ -33,7 +33,7 @@ exports.getBetPostView = (bet, status, pointsRemaining) => {
   }
 
   const statusField = blockKitUtilities.formatField("Status", this.formatBetStatus(status));
-  const oddsField = blockKitUtilities.formatField("Odds", `${bet.odds.numerator}:${bet.odds.denominator}`);
+  const oddsField = blockKitUtilities.formatField("Odds", `${bet.odds.denominator}:${bet.odds.numerator}`);
   const amount = blockKitUtilities.formatField("Amount", bet.pointsBet + " pts");
   const remaining = blockKitUtilities.formatField("Remaining", pointsRemaining + " pts");
   const bottomLine = blockKitUtilities.markdownElement(`${statusField}  ${oddsField}  ${amount}  ${remaining}  ${finishedText}`);
@@ -45,7 +45,7 @@ exports.displayOdds = (betOdds) => {
   if (!betOdds) {
     return 'No odds for this bet';
   }
-  return `${betOdds.numerator}:${betOdds.denominator}`;
+  return `${betOdds.denominator}:${betOdds.numerator}`;
 };
 
 exports.betStatusEmoji = (status) => {
