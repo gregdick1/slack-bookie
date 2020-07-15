@@ -18,7 +18,7 @@ exports.handleDispute = async (app, body, context, bet) => {
     token: context.botToken,
     channel: bet.channelId,
   });
-  votesNeeded = (result.members.length - 1) / 3; //minus one accounts for the bot itself
+  votesNeeded = Math.trunc((result.members.length - 1) / 3); //minus one accounts for the bot itself
 
   result = await app.client.chat.postMessage({
     token: context.botToken,
