@@ -69,13 +69,19 @@ exports.handleDisputeVoteResult = async (app, body, context, betId, result) => {
   //TODO better messaging about points distributed.
   message = `Hey ${usersToPing.join(", ")},\nThe mob has spoken and the outcome of this bet was ${this.getResultDisplay(result)}. This bet is now closed. Happy Gambling!`;
 
-  await app.client.chat.postMessage({
+  await app.client.chat.update({
     token: context.botToken,
     channel: bet.channelId,
     ts: bet.postId,
+    blocks: betViewUtilities.getBetPostView(bet, betDB.statusFinished, 0),
+  });
+
+  await app.client.chat.postMessage({
+    token: context.botToken,
+    channel: bet.channelId,
+    thread_ts: bet.postId,
     text: message,
   });
-  //TODO update bet post
 }
 
 exports.handleSubmitResultsFromChannel = async (app, body, context) => {

@@ -157,7 +157,7 @@ exports.setupBets = (app) => {
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', canTake)
+      blocks: betViewUtilities.getBetPostView(temp_bet, betDB.statusOpen, canTake)
     });
 
     const postId = result.ts;

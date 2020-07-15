@@ -2,15 +2,9 @@ const blockKitUtilities = require("./blockKitUtilities");
 const utilities = require('./utilities');
 const betDB = require("../db/bet");
 
-exports.statusOpenDisplay = 'Open';
-exports.statusClosedDisplay = 'Closed';
-exports.statusFinishedDisplay = 'Finished';
-exports.statusCanceledDisplay = 'Canceled';
-
-exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
-
+exports.getBetPostView = (bet, status, pointsRemaining) => {
   let overflowOptions = [];
-  if (statusDisplay === this.statusOpenDisplay) {
+  if (status === betDB.statusOpen) {
     overflowOptions.push(blockKitUtilities.option('Accept Bet', 'accept_bet'));
   }
   overflowOptions.push(blockKitUtilities.option('Submit Results', 'submit_results'));
@@ -21,7 +15,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
     blockKitUtilities.divider(),
   ]
 
-  if (statusDisplay !== this.statusFinishedDisplay) {
+  if ([betDB.statusOpen, betDB.statusClosed].includes(status)) {
     const sectionWithOverflow = blockKitUtilities.markdownSectionWithOverflow(bet.scenarioText, 'bet_action', 'bet_action_from_channel', overflowOptions);
     blocks.push(sectionWithOverflow);
   } else {
@@ -31,19 +25,16 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   blocks.push(blockKitUtilities.divider());
 
   let finishedText = '';
-  if (statusDisplay === this.statusFinishedDisplay) {
-    finishedText = ' *Result:* Implement Me'
+  if (status === betDB.statusFinished) {
+    finishedText = blockKitUtilities.formatField("Result", "Implement Me");
   }
 
-  blocks.push({
-    type: 'context',
-    elements: [
-      {
-        type: "mrkdwn",
-        text: `*Status:* ${statusDisplay}  *Amount:* ${bet.pointsBet} pts  *Remaining:* ${pointsRemaining} pts ${finishedText}`,
-      },
-    ]
-  });
+  const status = blockKitUtilities.formatField("Status", this.formatBetStatus(status));
+  const odds = blockKitUtilities.formatField("Odds", `${bet.odds.numerator}:${bet.odds.denominator}`);
+  const amount = blockKitUtilities.formatField("Amount", bet.pointsBet + " pts");
+  const remaining = blockKitUtilities.formatField("Remaining", pointsRemaining + "pts");
+  const bottomLine = blockKitUtilities.markdownElement(`${status}  ${odds}  ${amount}  ${remaining}  ${finishedText}`);
+  blocks.push(blockKitUtilities.context([bottomLine]));
   return blocks;
 }
 
@@ -58,6 +49,17 @@ exports.betStatusEmoji = (status) => {
   return ':in-progress:';
 }
 
+exports.betStatusDisplay = (status) => {
+  if (status === betDB.statusCanceled) {
+    return 'Canceled';
+  } else if (status === betDB.statusClosed) {
+    return 'Closed';
+  } else if (status === betDB.statusFinished) {
+    return 'Finished';
+  }
+  return 'Open';
+}
+
 exports.formatBetStatus = (status) => {
-  return this.betStatusEmoji(status) + ' ' + status;
+  return this.betStatusEmoji(status) + ' ' + this.betStatusDisplay(status);
 }
