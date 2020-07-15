@@ -28,7 +28,21 @@ exports.homeView = (text, blockArray) => {
     };
 };
 
-exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitText) => {
+exports.markdownElement = (text) => {
+    return {
+        type: "mrkdwn",
+        text: text
+    };
+}
+
+exports.context = (elements) => {
+    return {
+        type: 'context',
+        elements: elements,
+    };
+};
+
+exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitText, submittable) => {
     if (!submittable) {
         submittable = true;
     }
@@ -44,7 +58,7 @@ exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitTex
         blocks: bkBlocks,
     };
     if (submittable) {
-        modalView.view.submit = {
+        modalView.submit = {
             type: "plain_text",
             text: submitText,
         };
