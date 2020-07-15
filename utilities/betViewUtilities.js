@@ -2,10 +2,15 @@ const blockKitUtilities = require("./blockKitUtilities");
 const utilities = require('./utilities');
 const betDB = require("../db/bet");
 
+exports.statusOpenDisplay = 'Open';
+exports.statusClosedDisplay = 'Closed';
+exports.statusFinishedDisplay = 'Finished';
+exports.statusCanceledDisplay = 'Canceled';
+
 exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
 
   let overflowOptions = [];
-  if (statusDisplay === betDB.statusOpen) {
+  if (statusDisplay === this.statusOpenDisplay) {
     overflowOptions.push(blockKitUtilities.overflowOption('Accept Bet', 'accept_bet'));
   }
 
@@ -18,9 +23,9 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
     blockKitUtilities.divider(),
   ]
 
-  if (statusDisplay === betDB.statusOpen) {
+  if (statusDisplay === this.statusOpenDisplay) {
     blocks.push(blockKitUtilities.markdownSectionWithAccessoryButton(bet.scenarioText, "Accept Bet", "accept_bet"));
-  } else if (statusDisplay !== betDB.statusFinished) {
+  } else if (statusDisplay !== this.statusFinishedDisplay) {
     const sectionWithOverflow = blockKitUtilities.markdownSectionWithOverflow(bet.scenarioText, 'bet_action', 'bet_action_from_channel', overflowOptions);
     blocks.push(sectionWithOverflow);
   } else {
@@ -30,7 +35,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   blocks.push(blockKitUtilities.divider());
 
   let finishedText = '';
-  if (statusDisplay === betDB.statusFinished) {
+  if (statusDisplay === this.statusFinishedDisplay) {
     finishedText = ' *Result:* Implement Me'
   }
 
@@ -43,7 +48,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
       },
     ]
   });
-  const submittableStatuses = [betDB.statusOpen, betDB.statusClosed];
+  const submittableStatuses = [this.statusOpenDisplay, this.statusClosedDisplay];
   if (submittableStatuses.includes(statusDisplay)) {
     blocks.push(blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel"));
   }
