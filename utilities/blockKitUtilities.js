@@ -12,6 +12,7 @@ exports.markdownSection = (textForSection) => {
     };
 };
 
+
 exports.formatField = (fieldName, text) => {
     return `*${fieldName}:* ${text}`;
 }
@@ -62,14 +63,14 @@ exports.overflowOption = (text, value) => {
 exports.markdownSectionWithOverflow = (textForSection, blockId, accessoryActionId, overflowOptions) => {
     return {
         type: 'section',
-        block_id: 'bet_action',
+        block_id: blockId,
         text: {
             type: 'mrkdwn',
-            text: bet.scenarioText,
+            text: textForSection,
         },
         accessory: {
             type: 'overflow',
-            action_id: 'bet_action_from_channel',
+            action_id: accessoryActionId,
             options: overflowOptions
         }
     };
