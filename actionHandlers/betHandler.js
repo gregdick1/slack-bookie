@@ -40,12 +40,18 @@ const validateFieldInputs = async (ack, view, wallet) => {
     odds = { numerator: match[2], denominator: match[1] };
   }
 
-  if (isNaN(amount)) {
+  if (isNaN(amount) || amount <= 0) {
     errors = errors === undefined ? {} : errors;
     errors.amount_input = "Please input a valid number of points";
   } else if (wallet.points < amount) {
     errors = errors === undefined ? {} : errors;
     errors.amount_input = `You only have ${wallet.points} points in your wallet!`;
+  } else if (amount < odds.denominator) {
+    errors = errors === undefined ? {} : errors;
+    errors.amount_input = `With odds of ${oddsInput}, you must put up at least ${odds.denominator}`
+  } else if (amount % odds.denominator !== 0) {
+    errors = errors === undefined ? {} : errors;
+    errors.amount_input = `With odds of ${oddsInput}, your amount must be a multiple of ${odds.denominator}.`
   }
 
   if (errors !== undefined) {
