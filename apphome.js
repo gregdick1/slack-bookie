@@ -67,21 +67,41 @@ const betSummaryView = (bet, wallet) => {
     const dateCreatedString = utilities.formatDate(bet.dateCreated);
     const betAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
     const betAcceptPoints = utilities.sumThing(betAccepts, 'pointsBet');
-    const firstBetAccept = betAccepts && betAccepts.length > 0 ? betAccepts[0] : null;
-    const betAcceptedBy = firstBetAccept ? utilities.formatSlackUserId(firstBetAccept.userId) : 'Nobody... yet';
-    const dateAcceptedString = firstBetAccept ? utilities.formatDate(firstBetAccept.dateAccepted) : 'Never... so far';
+    const betAcceptPayouts = utilities.sumThing(betAccepts, 'payout');
+    let dateAcceptedStringBuilder = '';
+    let betAcceptedStringBuilder = '';
+    betAccepts.forEach(ba => {
+        dateAcceptedStringBuilder += (ba ? utilities.formatDate(ba.dateAccepted) : '') + '\n';
+        betAcceptedStringBuilder += (ba ? utilities.formatSlackUserId(ba.userId) : '') + '\n';
+    });
+    const betAcceptedBy = betAcceptedStringBuilder.length > 0 ? betAcceptedStringBuilder : 'Nobody... yet';
+    const dateAcceptedString = dateAcceptedStringBuilder.length > 0 ? dateAcceptedStringBuilder : 'Never... so far';
     const demFields = [
-        blockKitUtilities.formatField('Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
+        blockKitUtilities.formatField('You Maximum Total Wager', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
         blockKitUtilities.formatField('Scenario Text', bet.scenarioText),
         blockKitUtilities.formatField('Bet Created', dateCreatedString),
         blockKitUtilities.formatField('Bet Accepted By', betAcceptedBy),
         blockKitUtilities.formatField('Bet Accepted At', dateAcceptedString),
-        blockKitUtilities.formatField('Bet Accepted Points', betAcceptPoints),
+        blockKitUtilities.formatField('Accepted Wager Total', betAcceptPoints),
         blockKitUtilities.formatField('Original Post', `<${bet.postUrl}|Open>`),
         blockKitUtilities.formatField('Bet Status', betViewUtilities.formatBetStatus(bet.status)),
         blockKitUtilities.formatField('Odds', betViewUtilities.displayOdds(bet.odds)),
+        blockKitUtilities.formatField('Potential Profit', profitString(betAcceptPayouts, betAcceptPoints)),
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
+};
+
+const profitString = (payout, wagered) => {
+    if (payout == 0) {
+        return `Nothing yet. Get somebody to bet against you!`;
+    }
+    const potentialProfit = payout - wagered;
+    const potentialProfitPercentage = (100 * (payout / wagered)) - 100;
+    return `${potentialProfit} pts or ${potentialProfitPercentage}% of your bet`;
+};
+
+const profitStringForBetAccept = (betAccept) => {
+    return profitString(betAccept.payout, betAccept.pointsBet);
 };
 
 const betAcceptSummaryView = (betAccept, wallet) => {
@@ -89,7 +109,7 @@ const betAcceptSummaryView = (betAccept, wallet) => {
     const bet = betDB.getBetById(betAccept.betId);
     const dateCreatedString = utilities.formatDate(bet.dateCreated);
     const demFields = [
-        blockKitUtilities.formatField('Bet Maximum Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
+        //blockKitUtilities.formatField('Bet Maximum Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
         blockKitUtilities.formatField('Bet Text', bet.scenarioText),
         blockKitUtilities.formatField('Bet Created', dateCreatedString),
         blockKitUtilities.formatField('Bet Accepted', dateAcceptedString),
@@ -98,6 +118,8 @@ const betAcceptSummaryView = (betAccept, wallet) => {
         blockKitUtilities.formatField('Original Post', `<${bet.postUrl}|Open>`),
         blockKitUtilities.formatField('Bet Status', betViewUtilities.formatBetStatus(bet.status)),
         blockKitUtilities.formatField('Odds', betViewUtilities.displayOdds(bet.odds)),
+        blockKitUtilities.formatField('Payout', betAccept.payout),
+        blockKitUtilities.formatField('Potential Profit', profitStringForBetAccept(betAccept)),
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
 }
