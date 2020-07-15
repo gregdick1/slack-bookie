@@ -11,11 +11,12 @@ exports.handleBetAccept = async (app, body, context) => {
     const channel = body.channel.id;
     const bet = betDB.getBetByPostId(channel, postId);
     const existingAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
+    const canTake = Math.trunc(bet.odds.numerator * bet.pointsBet / bet.odds.denominator)
     const currentKitty = existingAccepts.reduce(
       (current, next) => current + next.pointsBet,
       0
     );
-    const remainingBet = bet.pointsBet - currentKitty;
+    const remainingBet = canTake - currentKitty;
 
     const wallet = walletDB.getWallet(channel, body.user.id);
     const result = await app.client.views.open({
@@ -80,7 +81,8 @@ exports.setup = (app) => {
     const md = JSON.parse(view.private_metadata);
     const bet = md.bet;
     const wallet = md.wallet;
-    const remainingBet = bet.pointsBet - md.kitty;
+    const canTake = Math.trunc(bet.odds.numerator * bet.pointsBet / bet.odds.denominator)
+    const remainingBet = canTake - md.kitty;
     const channel = bet.channelId;
 
     let errors = undefined;
@@ -117,8 +119,7 @@ exports.setup = (app) => {
       text: `${utilities.formatSlackUserId(user)} has accepted this bet!`,
     });
 
-    //TODO implement odds. Currently always 1:1
-    let payout = amount * 2;
+    let payout = amount + Math.trunc(bet.odds.denominator * amount / bet.odds.numerator);
 
     betAcceptDB.addBetAccept(
       bet._id,
@@ -131,16 +132,17 @@ exports.setup = (app) => {
     walletDB.updateBalance(wallet._id, -amount);
 
     const totalPaid = md.kitty + amount;
-    if (totalPaid == bet.pointsBet) {
+    let status = "Open";
+    if (totalPaid == canTake) {
       betDB.setBetStatus(bet._id, betDB.statusClosed);
-
-      const result = await app.client.chat.update({
-        token: context.botToken,
-        channel: channel,
-        ts: bet.postId,
-        blocks: betViewUtilities.getBetPostView(bet, betDB.statusClosed, 0),
-      });
-      console.log("Bet is closed! Wahoo!");
+      status = "Closed";
     }
+
+    await app.client.chat.update({
+      token: context.botToken,
+      channel: channel,
+      ts: bet.postId,
+      blocks: betViewUtilities.getBetPostView(bet, status, remainingBet - amount),
+    });
   });
 };

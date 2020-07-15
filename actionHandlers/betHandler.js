@@ -5,6 +5,59 @@ const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 const utilities = require('../utilities/utilities');
 
+const validateFieldInputs = async (ack, view, wallet) => {
+  let errors = undefined;
+  const fieldVals = view.state.values;
+  if (!fieldVals["amount_input"] || !fieldVals["odds_input"]) {
+    errors = {
+      amount_input: "Please input an amount to bet and odds"
+    };
+
+    await ack({
+      response_action: "errors",
+      errors
+    });
+
+    return { 
+      errors,
+      input: undefined 
+    };
+  }
+
+  const amountInput = fieldVals["amount_input"]["amount_input"]["value"];
+  const amount = parseInt(amountInput, 10);
+
+  const oddsInput = fieldVals["odds_input"]["odds_input"]["value"]
+  const match = oddsInput.match(/([0-9]+):([0-9]+)/);
+  let odds = undefined
+  if (!match) {
+    errors = {
+      odds_input: "Odds must be in the format A:B"
+    }
+  } else {
+    odds = { numerator: match[1], denominator: match[2] };
+  }
+
+  if (isNaN(amount)) {
+    errors = errors === undefined ? {} : errors;
+    errors.amount_input = "Please input a valid number of points";
+  } else if (wallet.points < amount) {
+    errors = errors === undefined ? {} : errors;
+    errors.amount_input = `You only have ${wallet.points} points in your wallet!`;
+  }
+
+  if (errors !== undefined) {
+    await ack({
+      response_action: "errors",
+      errors,
+    });
+  } else {
+    await ack();
+  }
+
+  return { errors, inputs: { amount, odds} }
+}
+
 exports.setupBets = (app) => {
   // Listen for a slash command invocation
   app.command(
@@ -46,32 +99,54 @@ exports.setupBets = (app) => {
             private_metadata: JSON.stringify({
               wallet: wallet,
             }),
-            blocks: [blockKitUtilities.markdownSection("Let's make a bet!"),
-            {
-              type: "input",
-              block_id: "bet_scenario",
-              label: {
-                type: "plain_text",
-                text: "I bet that...",
+            blocks: [
+              blockKitUtilities.markdownSection("Let's make a bet!"),
+              blockKitUtilities.markdownSection(`You have ${wallet.points} points available`),
+              blockKitUtilities.divider(),
+              {
+                type: "input",
+                block_id: "bet_scenario",
+                label: {
+                  type: "plain_text",
+                  text: "I bet that...",
+                },
+                element: {
+                  type: "plain_text_input",
+                  action_id: "dreamy_input",
+                  multiline: true,
+                },
               },
-              element: {
-                type: "plain_text_input",
-                action_id: "dreamy_input",
-                multiline: true,
+              {
+                type: "input",
+                block_id: "amount_input",
+                label: {
+                  type: "plain_text",
+                  text: "How many points?",
+                },
+                element: {
+                  type: "plain_text_input",
+                  action_id: "amount_input",
+                },
               },
-            },
-            {
-              type: "input",
-              block_id: "amount_input",
-              label: {
-                type: "plain_text",
-                text: "How many points?",
+              {
+                type: "input",
+                block_id: "odds_input",
+                label: {
+                  type: "plain_text",
+                  text: "At odds of:",
+                },
+                element: {
+                  type: "plain_text_input",
+                  action_id: "odds_input",
+                  initial_value: "1:1"
+                },
               },
-              element: {
-                type: "plain_text_input",
-                action_id: "amount_input",
-              },
-            },
+              // blockKitUtilities.divider(),
+              // blockKitUtilities.markdownSectionWithAccessoryButton(
+              //   "Once you've entered an amount and odds, this section can show you the payouts before you submit the bet",
+              //   "Calculate Payouts",
+              //   "recalc_payouts"
+              // ),
             ],
             submit: {
               type: "plain_text",
@@ -85,6 +160,19 @@ exports.setupBets = (app) => {
     }
   );
 
+  // TODO: Some way to display payouts given current odds before final submission?
+
+  // app.action("recalc_payouts", async ({ ack, body }) => {
+  //   const view = body.view
+  //   const md = JSON.parse(view.private_metadata);
+  //   const wallet = md.wallet;
+
+  //   const { errors, inputs } = await validateFieldInputs(ack, view, wallet);
+  //   if (errors) return;
+    
+  //   console.log("no errrors");
+  // });
+
   // Handle a view_submission event
   app.view("bet_creation", async ({
     ack,
@@ -96,49 +184,30 @@ exports.setupBets = (app) => {
     const val =
       view["state"]["values"]["bet_scenario"]["dreamy_input"]["value"];
 
-    const amountInput =
-      view["state"]["values"]["amount_input"]["amount_input"]["value"];
-    const amount = parseInt(amountInput, 10);
     const md = JSON.parse(view.private_metadata);
     const wallet = md.wallet;
+    const { errors,  inputs: { amount, odds } } = await validateFieldInputs(ack, view, wallet)
 
-    let errors = undefined;
-
-    if (isNaN(amount)) {
-      errors = {
-        amount_input: "Please input a valid number of points",
-      };
-    } else if (wallet.points < amount) {
-      errors = {
-        amount_input: `You only have ${wallet.points} points in your wallet!`,
-      };
-    }
-
-    if (errors !== undefined) {
-      await ack({
-        response_action: "errors",
-        errors,
-      });
-      return;
-    } else {
-      await ack();
-    }
+    if (errors) return;
 
     const channel = wallet.channelId;
 
     const temp_bet = {
       userId: user,
       scenarioText: val,
-      pointsBet: amount
+      pointsBet: amount,
+      odds,
     }
+    const canTake = Math.trunc(odds.numerator * amount / odds.denominator)
+
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', amount)
+      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', canTake)
     });
 
     const postId = result.ts;
-    betDB.addBet(user, channel, wallet._id, val, amount, postId);
+    betDB.addBet(user, channel, wallet._id, val, amount, odds, postId);
     walletDB.updateBalance(wallet._id, -amount);
   });
 };

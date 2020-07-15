@@ -109,6 +109,7 @@ exports.addBet = (
   walletId,
   scenarioText,
   pointsBet,
+  odds,
   postId
 ) => {
   let existingBet = this.getBetByUserChannelScenario(
@@ -132,6 +133,7 @@ exports.addBet = (
       postId: postId,
       dateCreated: Date.now(),
       status: this.statusOpen,
+      odds,
     },
     null,
     (err, results) => {
