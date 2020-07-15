@@ -20,21 +20,34 @@ exports.handleBetAccept = async (app, body, context) => {
 
     const wallet = walletDB.getWallet(channel, body.user.id);
 
-    const modalViewBlocks = [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
-    blockKitUtilities.markdownSection(bet.scenarioText),
-    blockKitUtilities.markdownSection(`You currently have ${
-      wallet.points
-      } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
-        remainingBet,
-        wallet.points
-      )} pts.`),
-    blockKitUtilities.textInput("amount_input", "How many points would you like to bet?", "amount_input"),
-    ];
-    const modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
-      bet: bet,
-      kitty: currentKitty,
-      wallet: wallet,
-    }, modalViewBlocks, "Submit", true);
+    let modalView = {}
+    if (body.user.id === bet.userId) {
+      const modalViewBlocks = [
+        blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
+        blockKitUtilities.markdownSection(bet.scenarioText),
+        blockKitUtilities.divider(),
+        blockKitUtilities.markdownSection("You can't accept a bet you created. Get outta here!"),
+      ];
+      modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", null, modalViewBlocks, "", false);
+    } else {
+      const modalViewBlocks = [
+        blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
+        blockKitUtilities.markdownSection(bet.scenarioText),
+        blockKitUtilities.markdownSection(`You currently have ${
+          wallet.points
+          } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+            remainingBet,
+            wallet.points
+          )} pts.`),
+        blockKitUtilities.textInput("amount_input", "How many points would you like to bet?", "amount_input"),
+      ];
+      modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
+        bet: bet,
+        kitty: currentKitty,
+        wallet: wallet,
+      }, modalViewBlocks, "Submit", true);
+    }
+    
     const result = await app.client.views.open({
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
@@ -89,13 +102,21 @@ exports.setup = (app) => {
       await ack();
     }
 
-    //threaded reply to the bet post
-    const result = await app.client.chat.postMessage({
-      token: context.botToken,
-      channel: channel,
-      thread_ts: bet.postId,
-      text: `${utilities.formatSlackUserId(user)} has accepted this bet!`,
-    });
+    //Handle the race condition. Get the bet from the db again and check to make sure there's enough remaining points
+    let freshBet = betDB.getBetById(bet._id);
+    let freshAccepts = betAcceptDB.getAllBetAcceptsForBet(freshBet._id);
+    let freshCanTake = Math.trunc(bet.odds.numerator * freshBet.pointsBet / freshBet.odds.denominator)
+    let freshKitty = freshAccepts.reduce((current, next) => current + next.pointsBet, 0);
+    let freshRemainingBet = freshCanTake - freshKitty;
+    if (freshRemainingBet < amount) {
+      //We have hit the race condition where somebody else accepted and beat them to the punch. We need to DM the user and let them know
+      await app.client.chat.postMessage({
+        token: context.botToken,
+        channel: user,
+        text: "It looks like somebody else accepted the bet before you were able to submit. I wasn't able to process it. If the bet is still open, you can try again."
+      });
+      return;
+    }
 
     let payout = amount + Math.trunc(bet.odds.denominator * amount / bet.odds.numerator);
 
@@ -108,6 +129,15 @@ exports.setup = (app) => {
       payout
     );
     walletDB.updateBalance(wallet._id, -amount);
+
+    //threaded reply to the bet post
+    const acceptMessage = `${utilities.formatSlackUserId(user)} has accepted this bet for ${amount} points and a potential payout of ${payout} points! They have ${wallet.points - amount} points left in their wallet.`
+    const result = await app.client.chat.postMessage({
+      token: context.botToken,
+      channel: channel,
+      thread_ts: bet.postId,
+      text: acceptMessage,
+    });
 
     const totalPaid = md.kitty + amount;
 
