@@ -2,6 +2,7 @@ const betDB = require("../db/bet");
 const walletDB = require("../db/wallet");
 const consts = require("../consts");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
+const betViewUtilities = require("../utilities/betViewUtilities");
 
 const validateFieldInputs = async (ack, view, wallet) => {
   let errors = undefined;
@@ -59,7 +60,7 @@ const validateFieldInputs = async (ack, view, wallet) => {
 exports.setupBets = (app) => {
   // Listen for a slash command invocation
   app.command(
-    `/${consts.commandPrefix}bookie-test`,
+    `/${consts.commandPrefix}bookie-bet`,
     async ({
       ack,
       body,
@@ -190,16 +191,18 @@ exports.setupBets = (app) => {
 
     const channel = wallet.channelId;
 
+    const temp_bet = {
+      userId: user,
+      scenarioText: val,
+      pointsBet: amount,
+      odds,
+    }
+    const canTake = Math.trunc(odds.numerator * amount / odds.denominator)
+
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: [blockKitUtilities.markdownSection(`<@${user}> wants to make a bet!`),
-        blockKitUtilities.divider(),
-        blockKitUtilities.markdownSection(val),
-        blockKitUtilities.divider(),
-        blockKitUtilities.markdownSectionWithAccessoryButton(`*Status:* Open\n *Amount:* ${amount} pts\n*Remaining:* ${amount} pts at ${odds.numerator}:${odds.denominator} odds`, "Accept Bet", "accept_bet"),
-        blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel")
-      ],
+      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', canTake)
     });
 
     const postId = result.ts;

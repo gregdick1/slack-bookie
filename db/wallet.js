@@ -55,12 +55,12 @@ exports.getWalletById = (walletId) => {
   return existingWallet;
 };
 
-exports.getWallet = (channelId, slackId) => {
+exports.getWallet = (channelId, userId) => {
   let existingWallet = null;
   const season = this.getCurrentSeason(channelId);
   db.find(
     {
-      slackId: slackId,
+      userId: userId,
       channelId: channelId,
       season: season,
     },
@@ -71,11 +71,11 @@ exports.getWallet = (channelId, slackId) => {
   return existingWallet;
 };
 
-exports.getWalletForSeason = (channelId, slackId, season) => {
+exports.getWalletForSeason = (channelId, userId, season) => {
   let existingWallet = null;
   db.find(
     {
-      slackId: slackId,
+      userId: userId,
       channelId: channelId,
       season: season,
     },
@@ -88,11 +88,11 @@ exports.getWalletForSeason = (channelId, slackId, season) => {
   return existingWallet;
 };
 
-exports.getAllWalletsForUser = (slackId, includeRetired) => {
-  let allWalletsForUser = null;
+exports.getAllWalletsForUser = (userId, includeRetired) => {
+  let allWalletsForUser = [];
   db.find(
     {
-      slackId: slackId,
+      userId: userId,
     },
     (err, results) => {
       if (results !== undefined) {
@@ -124,14 +124,14 @@ exports.retireWallet = (walletId) => {
   return wallet;
 };
 
-exports.addWallet = (channelId, slackId, points, season) => {
-  let existingWallet = this.getWalletForSeason(channelId, slackId, season);
+exports.addWallet = (channelId, userId, points, season) => {
+  let existingWallet = this.getWalletForSeason(channelId, userId, season);
   if (existingWallet !== null) {
     return existingWallet;
   }
   db.insertItem(
     {
-      slackId: slackId,
+      userId: userId,
       channelId: channelId,
       points: points,
       season: season,
