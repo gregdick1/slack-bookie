@@ -1,5 +1,6 @@
 const mobVoteDB = require("../db/mobVote");
 const walletDB = require("../db/wallet");
+const betDB = require("../db/bet");
 const consts = require("../consts");
 const blockKitUtilities = require ("../utilities/blockKitUtilities");
 const submitResultsHandler = require("./submitResultsHandler");
@@ -74,7 +75,7 @@ exports.setup = (app) => {
       // Acknowledge the command request
       await ack();
 
-      let message = "A vote to reset the bookie wallets in this channel has been initiated! React with :yes: to vote for a reset. If half the channel votes :yes: within the next 24 hours, the reset will happen.";
+      let message = "A vote to reset the bookie wallets in this channel has been initiated! All outstanding bets will also be canceled. React with :yes: to vote for a reset. If half the channel votes :yes: within the next 24 hours, the reset will happen.";
       await startMobVote(say, context, message, 'reset');
     }
   );
@@ -109,7 +110,13 @@ exports.setup = (app) => {
       walletDB.addWallet(channel, item, consts.defaultPoints, currentSeason + 1);
     });
 
-    say(`The people have spoken! The channel has been reset and everybody now has ${consts.defaultPoints} points.`);
+    let unfinishedBets = betDB.getUnfinishedBetsForChannel(channel);
+    unfinishedBets.forEach((b) => {
+      b.status = betDB.statusCanceled;
+    });
+    betDB.save();
+
+    say(`The people have spoken! The channel has been reset and everybody now has ${consts.defaultPoints} points and all unfinished bets have been canceled.`);
     //TODO show leaderboard from last season
   };
 
