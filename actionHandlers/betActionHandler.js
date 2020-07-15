@@ -1,5 +1,6 @@
 const betAcceptHandler = require("./betAcceptHandler");
-const submitResultHandler = require("./submitResultsHandler")
+const submitResultHandler = require("./submitResultsHandler");
+const cancelBetHandler = require("./cancelBetHandler");
 
 exports.setup = (app) => {
   app.action(
@@ -15,7 +16,7 @@ exports.setup = (app) => {
       } else if (action === 'submit_results') {
         await submitResultHandler.handleSubmitResultsFromChannel(app, body, context);
       } else if (action === 'cancel_bet') {
-        //TODO
+        await cancelBetHandler.handleCancelFromBetAction(app, body, context);
       }
     }
   );

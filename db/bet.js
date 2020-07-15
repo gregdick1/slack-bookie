@@ -200,5 +200,7 @@ exports.statusOpen = "open";
 exports.statusClosed = "closed";
 exports.statusFinished = "finished";
 exports.statusCanceled = "canceled";
+exports.outcomeCreatorWon = "yes";
+exports.outcomeCreatorLost = "no";
 
 const allBetStatuses = [this.statusOpen, this.statusClosed, this.statusFinished, this.statusCanceled];
