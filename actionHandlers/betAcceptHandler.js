@@ -131,11 +131,12 @@ exports.setup = (app) => {
     walletDB.updateBalance(wallet._id, -amount);
 
     //threaded reply to the bet post
+    const acceptMessage = `${utilities.formatSlackUserId(user)} has accepted this bet for ${amount} points and a potential payout of ${payout} points! They have ${wallet.points - amount} points left in their wallet.`
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
       thread_ts: bet.postId,
-      text: `${utilities.formatSlackUserId(user)} has accepted this bet!`,
+      text: acceptMessage,
     });
 
     const totalPaid = md.kitty + amount;
