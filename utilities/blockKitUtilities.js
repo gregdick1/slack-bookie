@@ -12,7 +12,6 @@ exports.markdownSection = (textForSection) => {
     };
 };
 
-
 exports.formatField = (fieldName, text) => {
     return `*${fieldName}:* ${text}`;
 };
