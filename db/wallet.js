@@ -89,7 +89,7 @@ exports.getWalletForSeason = (channelId, userId, season) => {
 };
 
 exports.getAllWalletsForUser = (userId, includeRetired) => {
-  let allWalletsForUser = null;
+  let allWalletsForUser = [];
   db.find(
     {
       userId: userId,

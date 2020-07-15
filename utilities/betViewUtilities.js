@@ -1,53 +1,28 @@
 const blockKitUtilities = require("./blockKitUtilities");
+const utilities = require('./utilities');
+const betDB = require("../db/bet");
 
 exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
 
   let overflowOptions = [];
-  if (statusDisplay === 'Open') {
-    overflowOptions.push({
-      text: {
-        type: 'plain_text',
-        text: 'Accept Bet',
-      },
-      value: 'accept_bet'
-    });
+  if (statusDisplay === betDB.statusOpen) {
+    overflowOptions.push(blockKitUtilities.overflowOption('Accept Bet', 'accept_bet'));
   }
 
-  overflowOptions.push({
-    text: {
-      type: 'plain_text',
-      text: 'Submit Results',
-    },
-    value: 'submit_results'
-  });
+  overflowOptions.push(blockKitUtilities.overflowOption('Submit Results', 'submit_results'));
 
-  overflowOptions.push({
-    text: {
-      type: 'plain_text',
-      text: 'Cancel Bet',
-    },
-    value: 'cancel_bet'
-  });
+  overflowOptions.push(blockKitUtilities.overflowOption('Cancel Bet', 'cancel_bet'));
 
   const blocks = [
-    blockKitUtilities.markdownSection(`<@${bet.userId}> wants to make a bet!`),
+    blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} wants to make a bet!`),
     blockKitUtilities.divider(),
   ]
-  
-  if (statusDisplay !== 'Finished'){
-    blocks.push({
-      type: 'section',
-      block_id: 'bet_action',
-      text: {
-        type: 'mrkdwn',
-        text: bet.scenarioText,
-      },
-      accessory: {
-        type: 'overflow',
-        action_id: 'bet_action_from_channel',
-        options: overflowOptions
-      }
-    });
+
+  if (statusDisplay === betDB.statusOpen) {
+    blocks.push(blockKitUtilities.markdownSectionWithAccessoryButton(bet.scenarioText, "Accept Bet", "accept_bet"));
+  } else if (statusDisplay !== betDB.statusFinished) {
+    const sectionWithOverflow = blockKitUtilities.markdownSectionWithOverflow(bet.scenarioText, 'bet_action', 'bet_action_from_channel', overflowOptions);
+    blocks.push(sectionWithOverflow);
   } else {
     blocks.push(blockKitUtilities.markdownSection(bet.scenarioText));
   }
@@ -55,7 +30,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   blocks.push(blockKitUtilities.divider());
 
   let finishedText = '';
-  if (statusDisplay === 'Finished'){
+  if (statusDisplay === betDB.statusFinished) {
     finishedText = ' *Result:* Implement Me'
   }
 
@@ -68,5 +43,24 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
       },
     ]
   });
+  const submittableStatuses = [betDB.statusOpen, betDB.statusClosed];
+  if (submittableStatuses.includes(statusDisplay)) {
+    blocks.push(blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel"));
+  }
   return blocks;
+}
+
+exports.betStatusEmoji = (status) => {
+  if (status === betDB.statusCanceled) {
+    return ':cancel:';
+  } else if (status === betDB.statusClosed) {
+    return ':closed_book:';
+  } else if (status === betDB.statusFinished) {
+    return ':done1:';
+  }
+  return ':in-progress:';
+}
+
+exports.formatBetStatus = (status) => {
+  return this.betStatusEmoji(status) + ' ' + status;
 }

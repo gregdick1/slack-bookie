@@ -3,6 +3,7 @@ const walletDB = require("../db/wallet");
 const consts = require("../consts");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
+const utilities = require('../utilities/utilities');
 
 exports.setupBets = (app) => {
   // Listen for a slash command invocation
@@ -23,7 +24,7 @@ exports.setupBets = (app) => {
       const wallet = walletDB.getWalletForSeason(channel, user, season);
       if (!wallet) {
         say(
-          `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``
+          `${utilities.formatSlackUserId(user)} wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``
         );
         return;
       }
@@ -46,31 +47,31 @@ exports.setupBets = (app) => {
               wallet: wallet,
             }),
             blocks: [blockKitUtilities.markdownSection("Let's make a bet!"),
-              {
-                type: "input",
-                block_id: "bet_scenario",
-                label: {
-                  type: "plain_text",
-                  text: "I bet that...",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "dreamy_input",
-                  multiline: true,
-                },
+            {
+              type: "input",
+              block_id: "bet_scenario",
+              label: {
+                type: "plain_text",
+                text: "I bet that...",
               },
-              {
-                type: "input",
-                block_id: "amount_input",
-                label: {
-                  type: "plain_text",
-                  text: "How many points?",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "amount_input",
-                },
+              element: {
+                type: "plain_text_input",
+                action_id: "dreamy_input",
+                multiline: true,
               },
+            },
+            {
+              type: "input",
+              block_id: "amount_input",
+              label: {
+                type: "plain_text",
+                text: "How many points?",
+              },
+              element: {
+                type: "plain_text_input",
+                action_id: "amount_input",
+              },
+            },
             ],
             submit: {
               type: "plain_text",
@@ -144,8 +145,8 @@ exports.setupBets = (app) => {
 
 exports.setup = (app) => {
   app.action({
-      action_id: "set_me_up_fam",
-    },
+    action_id: "set_me_up_fam",
+  },
     async ({
       body,
       ack
@@ -214,8 +215,8 @@ exports.setup = (app) => {
     }
   );
   app.action({
-      action_id: "retire_wallet",
-    },
+    action_id: "retire_wallet",
+  },
     async ({
       body,
       ack

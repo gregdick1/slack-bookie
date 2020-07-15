@@ -12,6 +12,10 @@ exports.markdownSection = (textForSection) => {
     };
 };
 
+exports.formatField = (fieldName, text) => {
+    return `*${fieldName}:* ${text}`;
+}
+
 exports.markdownSectionWithAccessoryImage = (textForSection, imageUrl, imageAltText) => {
     return {
         type: "section",
@@ -45,6 +49,32 @@ exports.markdownSectionWithAccessoryButton = (textForSection, buttonText, button
     };
 };
 
+exports.overflowOption = (text, value) => {
+    return {
+        text: {
+            type: 'plain_text',
+            text: text,
+        },
+        value: value
+    };
+};
+
+exports.markdownSectionWithOverflow = (textForSection, blockId, accessoryActionId, overflowOptions) => {
+    return {
+        type: 'section',
+        block_id: 'bet_action',
+        text: {
+            type: 'mrkdwn',
+            text: bet.scenarioText,
+        },
+        accessory: {
+            type: 'overflow',
+            action_id: 'bet_action_from_channel',
+            options: overflowOptions
+        }
+    };
+};
+
 exports.markdownWithFieldsSection = (arrayOfTextFields) => {
     let arrayFields = [];
     arrayOfTextFields.forEach(fieldText => {
@@ -75,7 +105,7 @@ exports.buttonAction = (blockId, buttonText, actionId, buttonStyle) => {
             },
             style: buttonStyle,
             action_id: actionId,
-        }, ],
+        },],
     }
 }
 

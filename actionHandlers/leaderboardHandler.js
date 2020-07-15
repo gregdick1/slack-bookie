@@ -1,5 +1,6 @@
 const consts = require("../consts");
-const walletDb = require("../db/wallet");
+const walletDB = require("../db/wallet");
+const utilities = require('../utilities/utilities');
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 
 const maxNToDisplay = 10;
@@ -7,21 +8,14 @@ const maxNToDisplay = 10;
 exports.setup = (app) => {
   app.command(
     `/${consts.commandPrefix}bookie-leaderboard`,
-    async ({
-      ack,
-      body,
-      context,
-      say
-    }) => {
+    async ({ ack, body, context, say }) => {
       await ack();
       const channel = body.channel_id;
-      const season = walletDb.getCurrentSeason(channel);
-      const wallets = walletDb.getAllWalletsForSeason(channel, season, false);
+      const season = walletDB.getCurrentSeason(channel);
+      const wallets = walletDB.getAllWalletsForSeason(channel, season, false);
 
       if (!wallets || !wallets.length || wallets.length === 0) {
-        say(
-          `<@${body.user_id}> oh no! I can't show you a leaderboard because I didn't find any wallets for this season. Has gambling been set up in this channel?`
-        );
+        say(`${utilities.formatSlackUserId(body.user_id)} oh no! I can't show you a leaderboard because I didn't find any wallets for this season. Has gambling been set up in this channel?`);
         return;
       }
 
@@ -59,8 +53,8 @@ exports.setup = (app) => {
 
       const blocks = [
         blockKitUtilities.markdownSection(`Here are the ${
-              sortAscending ? "bottom" : "top"
-            } ${n} wallets for this season`),
+          sortAscending ? "bottom" : "top"
+          } ${n} wallets for this season`),
         blockKitUtilities.markdownSection(txt)
       ];
 
