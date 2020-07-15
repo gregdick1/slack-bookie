@@ -2,16 +2,7 @@ const mobVoteDB = require("../db/mobVote");
 const walletDB = require("../db/wallet");
 const consts = require("../consts");
 const blockKitUtilities = require ("../utilities/blockKitUtilities");
-
-const getResultDisplay = (result) => {
-  if (result === 'yes') {
-    return 'Yes';
-  } else if (result === 'no') {
-    return 'No';
-  } else if (result === 'cancel') {
-    return 'Inconclusive';
-  }
-}
+const submitResultsHandler = require("./submitResultsHandler");
 
 exports.handleDispute = async (app, body, context, bet) => {
   if (!bet.result_submissions || bet.result_submissions.length < 2) {
@@ -19,7 +10,7 @@ exports.handleDispute = async (app, body, context, bet) => {
   }
 
   let submissionText = bet.result_submissions.map((rs) => {
-    return `<@${rs.userId}> said the result was ${getResultDisplay(rs.result)}`
+    return `<@${rs.userId}> said the result was ${submitResultsHandler.getResultDisplay(rs.result)}`
   }).join(', ');
 
   let result = await app.client.conversations.members({
@@ -45,7 +36,11 @@ exports.handleDispute = async (app, body, context, bet) => {
   postId = result.ts;
   let lockoutTime = new Date();
   lockoutTime.setDate(lockoutTime.getDate() + 1);
-  mobVoteDb.createMobVote(bet.channelId, postId, 'dispute', lockoutTime, votesNeeded);
+  mobVoteDB.createMobVote(bet.channelId, postId, 'dispute', lockoutTime, votesNeeded);
+  //TODO do this better
+  let mobVote = mobVoteDB.getMobVote(bet.channelId, postId);
+  mobVote.betId = bet._id;
+  mobVoteDB.save();
 }
 
 exports.setup = (app) => {
@@ -134,7 +129,13 @@ exports.setup = (app) => {
     say
   }) => {
     // See if it's a mob vote that can still be voted on
-    if (body.event.reaction === "yes" || body.event.reaction === "no" || body.event.reaction === "notsureif") {
+    const voteReactions = {
+      yes: 0,
+      no: 0,
+      notsureif: 0
+    };
+    const acceptableVotes = Object.keys(voteReactions);
+    if (acceptableVotes.includes(body.event.reaction)) {
       const postId = body.event.item.ts;
       const channel = body.event.item.channel;
 
@@ -148,21 +149,35 @@ exports.setup = (app) => {
         });
         yesVotes = 0;
         result.message.reactions.forEach((reaction) => {
-          if (reaction.name === "yes") {
-            yesVotes = reaction.count;
+          if (acceptableVotes.includes(reaction.name)) {
+            voteReactions[reaction.name] += reaction.count;
           }
         });
 
-        if (yesVotes >= votePost.votesNeeded) {
-          if (votePost.type === 'reset') {
-            await resetChannel(votePost.channelId, context, say);
-          } else if (votePost.type === 'points') {
-            await giveMorePoints(votePost.channelId, say);
-          } else if (votePost.type === 'dispute') {
-            //TODO
-          }
+        if (votePost.type === 'reset' && voteReactions['yes'] >= votePost.votesNeeded) {
+          await resetChannel(votePost.channelId, context, say);
           votePost.handled = true;
           mobVoteDB.save();
+        }
+        if (votePost.type === 'points' && voteReactions['yes'] >= votePost.votesNeeded) {
+          await giveMorePoints(votePost.channelId, say);
+          votePost.handled = true;
+          mobVoteDB.save();
+        }
+        if (votePost.type === 'dispute') {
+          for (let v of acceptableVotes) {
+            if (voteReactions[v] >= votePost.votesNeeded) {
+              let result = v;
+              if (result === 'notsureif'){
+                result = 'cancel';
+              }
+
+              await submitResultsHandler.handleDisputeVoteResult(app, body, context, votePost.betId, result);
+              votePost.handled = true;
+              mobVoteDB.save();
+              break;
+            }
+          }
         }
       }
     }
