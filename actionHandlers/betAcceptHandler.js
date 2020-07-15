@@ -20,21 +20,34 @@ exports.handleBetAccept = async (app, body, context) => {
 
     const wallet = walletDB.getWallet(channel, body.user.id);
 
-    const modalViewBlocks = [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
-    blockKitUtilities.markdownSection(bet.scenarioText),
-    blockKitUtilities.markdownSection(`You currently have ${
-      wallet.points
-      } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
-        remainingBet,
-        wallet.points
-      )} pts.`),
-    blockKitUtilities.textInput("amount_input", "How many points would you like to bet?", "amount_input"),
-    ];
-    const modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
-      bet: bet,
-      kitty: currentKitty,
-      wallet: wallet,
-    }, modalViewBlocks, "Submit", true);
+    let modalView = {}
+    if (body.user.id === bet.userId) {
+      const modalViewBlocks = [
+        blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
+        blockKitUtilities.markdownSection(bet.scenarioText),
+        blockKitUtilities.divider(),
+        blockKitUtilities.markdownSection("You can't accept a bet you created. Get outta here!"),
+      ];
+      modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", null, modalViewBlocks, "", false);
+    } else {
+      const modalViewBlocks = [
+        blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
+        blockKitUtilities.markdownSection(bet.scenarioText),
+        blockKitUtilities.markdownSection(`You currently have ${
+          wallet.points
+          } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+            remainingBet,
+            wallet.points
+          )} pts.`),
+        blockKitUtilities.textInput("amount_input", "How many points would you like to bet?", "amount_input"),
+      ];
+      modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
+        bet: bet,
+        kitty: currentKitty,
+        wallet: wallet,
+      }, modalViewBlocks, "Submit", true);
+    }
+    
     const result = await app.client.views.open({
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it

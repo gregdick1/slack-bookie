@@ -43,7 +43,7 @@ exports.context = (elements) => {
 };
 
 exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitText, submittable) => {
-    if (!submittable) {
+    if (submittable === undefined) {
         submittable = true;
     }
     var modalView = {
@@ -54,9 +54,11 @@ exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitTex
             type: "plain_text",
             text: titleText,
         },
-        private_metadata: JSON.stringify(privateMetadata),
         blocks: bkBlocks,
     };
+    if (privateMetadata) {
+        modalView.private_metadata = JSON.stringify(privateMetadata);
+    }
     if (submittable) {
         modalView.submit = {
             type: "plain_text",
