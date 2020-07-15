@@ -36,7 +36,7 @@ exports.setup = (app) => {
             private_metadata: JSON.stringify({
               bet: bet,
             }),
-            blocks: [blockKitUtilities.markdownSection(`<@${bet.slackId}> bet that...`),
+            blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
               blockKitUtilities.markdownSection(bet.scenarioText), {
                 type: "input",
                 label: {
@@ -155,7 +155,7 @@ exports.setup = (app) => {
     const betAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
     const betAcceptUsers = betAccepts.map((x) => x.userId);
     let betSide = "";
-    if (userId === bet.slackId) {
+    if (userId === bet.userId) {
       betSide = "creator";
     } else if (betAcceptUsers.includes(userId)) {
       betSide = "acceptor";
@@ -180,7 +180,7 @@ exports.setup = (app) => {
 
     let usersToPing = [];
     if (sideToMessage === "creator") {
-      usersToPing.push(bet.slackId);
+      usersToPing.push(bet.userId);
     } else if (sideToMessage === "acceptor") {
       usersToPing.push(...betAcceptUsers);
     }

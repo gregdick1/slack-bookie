@@ -2,7 +2,7 @@ const blockKitUtilities = require("./blockKitUtilities");
 
 exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   const blocks = [
-    blockKitUtilities.markdownSection(`<@${bet.slackId}> wants to make a bet!`),
+    blockKitUtilities.markdownSection(`<@${bet.userId}> wants to make a bet!`),
     blockKitUtilities.divider(),
   ]
   

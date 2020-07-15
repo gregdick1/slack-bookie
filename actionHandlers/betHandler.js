@@ -126,7 +126,7 @@ exports.setupBets = (app) => {
     const channel = wallet.channelId;
 
     const temp_bet = {
-      slackId: user,
+      userId: user,
       scenarioText: val,
       pointsBet: amount
     }

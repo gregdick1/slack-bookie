@@ -36,7 +36,7 @@ exports.getAllBetsForUser = (slackUser) => {
   let existingBets = [];
   db.find(
     {
-      slackId: slackUser,
+      userId: slackUser,
     },
     (err, results) => {
       if (results && results.length > 0) {
@@ -47,11 +47,11 @@ exports.getAllBetsForUser = (slackUser) => {
   return addPostUrls(existingBets);
 };
 
-exports.getUserBetsForChannel = (slackId, channelId, walletId) => {
+exports.getUserBetsForChannel = (userId, channelId, walletId) => {
   let existingBets = null;
   db.find(
     {
-      slackId: slackId,
+      userId: userId,
       channelId: channelId,
       walletId: walletId,
     },
@@ -65,7 +65,7 @@ exports.getUserBetsForChannel = (slackId, channelId, walletId) => {
 };
 
 exports.getBetByUserChannelScenario = (
-  slackId,
+  userId,
   channelId,
   walletId,
   scenarioText
@@ -73,7 +73,7 @@ exports.getBetByUserChannelScenario = (
   let existingBet = null;
   db.find(
     {
-      slackId: slackId,
+      userId: userId,
       channelId: channelId,
       walletId: walletId,
       scenarioText: scenarioText,
@@ -104,7 +104,7 @@ exports.getBetByPostId = (channelId, postId) => {
 };
 
 exports.addBet = (
-  slackId,
+  userId,
   channelId,
   walletId,
   scenarioText,
@@ -112,7 +112,7 @@ exports.addBet = (
   postId
 ) => {
   let existingBet = this.getBetByUserChannelScenario(
-    slackId,
+    userId,
     channelId,
     walletId,
     scenarioText
@@ -124,7 +124,7 @@ exports.addBet = (
   //TODO transfer points from wallet to bet
   db.insertItem(
     {
-      slackId: slackId,
+      userId: userId,
       channelId: channelId,
       walletId: walletId,
       scenarioText: scenarioText,

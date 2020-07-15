@@ -41,7 +41,7 @@ exports.setup = (app) => {
               kitty: currentKitty,
               wallet: wallet,
             }),
-            blocks: [blockKitUtilities.markdownSection(`<@${bet.slackId}> has bet that...`),
+            blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
               blockKitUtilities.markdownSection(bet.scenarioText),
               blockKitUtilities.markdownSection(`You currently have ${
                     wallet.points

@@ -86,7 +86,7 @@ const betAcceptSummaryView = (betAccept, wallet) => {
         `*Bet Text:* ${bet.scenarioText}`,
         `*Bet Created:* ${dateCreatedString}`,
         `*Bet Accepted:* ${dateAcceptedString}`,
-        `*Bet Creator:* <@${bet.slackId}>`,
+        `*Bet Creator:* <@${bet.userId}>`,
         `*Original Post:* <${bet.postUrl}|Open>`,
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
