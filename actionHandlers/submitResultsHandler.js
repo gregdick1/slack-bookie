@@ -3,16 +3,102 @@ const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
+const mobVotehandler = require("./mobVoteHandler");
 
 exports.handleSubmitResultsFromChannel = async (app, body, context) => {
   try {
     const postId = body.message.ts;
     const channel = body.channel.id;
     const bet = betDb.getBetByPostId(channel, postId);
+    const betAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
 
-    //TODO check if user is associated with the bet
+    let userCanSubmit = false;
+    const user = body.user.id;
+    if (user === bet.userId) {
+      userCanSubmit = true;
+    } else {
+      const betAcceptUsers = betAccepts.map(x => x.userId);
+      if (betAcceptUsers.includes(user)) {
+        userCanSubmit = true;
+      }
+    }
 
-    const result = await app.client.views.open({
+    let betHasDispute = false;
+    if (bet.result_submissions && bet.result_submissions.length > 1) {
+      const creatorSideResults = bet.result_submissions.filter((x) => x.betSide == "creator").map((x) => x.result);
+      const acceptorSideResults = bet.result_submissions.filter((x) => x.betSide == "acceptor").map((x) => x.result);
+      if (creatorSideResults.length > 0 && acceptorSideResults.length > 0) {
+        betHasDispute = true;
+      }
+    }
+
+    let blocks = [
+      blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
+      blockKitUtilities.markdownSection(bet.scenarioText),
+      blockKitUtilities.divider()
+    ];
+    if (!userCanSubmit) {
+      blocks.push(blockKitUtilities.markdownSection('Sorry, you are not a part of this bet, so you cannot submit results.'));
+    } else {
+      let options = [
+        {
+          text: {
+            type: "plain_text",
+            text: ":yes:",
+            emoji: true,
+          },
+          value: "yes",
+        },
+        {
+          text: {
+            type: "plain_text",
+            text: ":no:",
+            emoji: true,
+          },
+          value: "no",
+        },
+        {
+          text: {
+            type: "plain_text",
+            text: "Inconclusive :notsureif:",
+            emoji: true,
+          },
+          value: "cancel",
+        },
+      ];
+      if (betHasDispute) {
+        options.push({
+          text: {
+            type: "plain_text",
+            text: "Settle dispute with mob vote.",
+            emoji: true,
+          },
+          value: "dispute",
+        });
+      }
+
+      blocks.push(...[
+        {
+          type: "input",
+          label: {
+            type: "plain_text",
+            text: "Did it happen?",
+          },
+          block_id: "bet_result",
+          element: {
+            type: "static_select",
+            placeholder: {
+              type: "plain_text",
+              text: "Did it happen?",
+            },
+            action_id: "bet_result_input",
+            options: options,
+          },
+        },
+      ]);
+    }
+
+    modal = {
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
       trigger_id: body.trigger_id,
@@ -28,55 +114,16 @@ exports.handleSubmitResultsFromChannel = async (app, body, context) => {
         private_metadata: JSON.stringify({
           bet: bet,
         }),
-        blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
-          blockKitUtilities.markdownSection(bet.scenarioText), {
-            type: "input",
-            label: {
-              type: "plain_text",
-              text: "Did it happen?",
-            },
-            block_id: "bet_result",
-            element: {
-              type: "static_select",
-              placeholder: {
-                type: "plain_text",
-                text: "Did it happen?",
-              },
-              action_id: "bet_result_input",
-              options: [{
-                  text: {
-                    type: "plain_text",
-                    text: ":yes:",
-                    emoji: true,
-                  },
-                  value: "yes",
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: ":no:",
-                    emoji: true,
-                  },
-                  value: "no",
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Inconclusive :notsureif:",
-                    emoji: true,
-                  },
-                  value: "cancel",
-                },
-              ],
-            },
-          },
-        ],
-        submit: {
-          type: "plain_text",
-          text: "Submit",
-        },
-      },
-    });
+        blocks: blocks,
+      }
+    };
+    if (userCanSubmit) {
+      modal.view.submit = {
+        type: "plain_text",
+        text: "Submit",
+      }
+    }
+    const result = await app.client.views.open(modal);
   } catch (error) {
     console.error(error);
   }
@@ -254,10 +301,11 @@ exports.setup = (app) => {
     const bet = md.bet;
     const channel = bet.channelId;
 
-    const val =
-      view["state"]["values"]["bet_result"]["bet_result_input"][
-        "selected_option"
-      ]["value"];
-    await handle_submit_results(body, context, val);
+    const val = view["state"]["values"]["bet_result"]["bet_result_input"]["selected_option"]["value"];
+    if (val === 'dispute') {
+      mobVotehandler.handleDispute(app, body, context, bet);
+    } else {
+      await handle_submit_results(body, context, val);
+    }
   });
 };

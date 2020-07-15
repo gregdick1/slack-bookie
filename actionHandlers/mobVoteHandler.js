@@ -1,6 +1,52 @@
 const mobVoteDb = require("../db/mobVote");
 const walletDb = require("../db/wallet");
 const consts = require("../consts");
+const blockKitUtilities = require ("../utilities/blockKitUtilities");
+
+const getResultDisplay = (result) => {
+  if (result === 'yes') {
+    return 'Yes';
+  } else if (result === 'no') {
+    return 'No';
+  } else if (result === 'cancel') {
+    return 'Inconclusive';
+  }
+}
+
+exports.handleDispute = async (app, body, context, bet) => {
+  if (!bet.result_submissions || bet.result_submissions.length < 2) {
+    return;
+  }
+
+  let submissionText = bet.result_submissions.map((rs) => {
+    return `<@${rs.userId}> said the result was ${getResultDisplay(rs.result)}`
+  }).join(', ');
+
+  let result = await app.client.conversations.members({
+    token: context.botToken,
+    channel: bet.channelId,
+  });
+  votesNeeded = (result.members.length - 1) / 3; //minus one accounts for the bot itself
+
+  result = await app.client.chat.postMessage({
+    token: context.botToken,
+    channel: bet.channelId,
+    blocks: [
+      blockKitUtilities.markdownSection('We have a dispute that needs settled!'),
+      blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
+      blockKitUtilities.divider(),
+      blockKitUtilities.markdownSection(bet.scenarioText),
+      blockKitUtilities.divider(),
+      blockKitUtilities.markdownSection(submissionText),
+      blockKitUtilities.markdownSection(`React with your vote of :yes:, :no:, or :notsureif: for inconclusive. First choice to receive ${votesNeeded} votes in the next 24 hours will win.`)
+    ],
+  });
+
+  postId = result.ts;
+  let lockoutTime = new Date();
+  lockoutTime.setDate(lockoutTime.getDate() + 1);
+  mobVoteDb.createMobVote(bet.channelId, postId, 'dispute', lockoutTime, votesNeeded);
+}
 
 exports.setup = (app) => {
 
@@ -88,7 +134,7 @@ exports.setup = (app) => {
     say
   }) => {
     // See if it's a mob vote that can still be voted on
-    if (body.event.reaction === "yes") {
+    if (body.event.reaction === "yes" || body.event.reaction === "no" || body.event.reaction === "notsureif") {
       const postId = body.event.item.ts;
       const channel = body.event.item.channel;
 
