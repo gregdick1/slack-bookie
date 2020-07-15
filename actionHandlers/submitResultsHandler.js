@@ -6,6 +6,47 @@ const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 const mobVotehandler = require("./mobVoteHandler");
 
+
+exports.getResultDisplay = (result) => {
+  let resultDisplay = "";
+  if (result === "yes") {
+    resultDisplay = "Yes";
+  } else if (result === "no") {
+    resultDisplay = "No";
+  } else if (result === "cancel") {
+    resultDisplay = "Inconclusive";
+  }
+  return resultDisplay;
+}
+
+exports.handleDisputeVoteResult = async (app, body, context, betId, result) => {
+
+  const bet = betDB.getBetById(betId);
+  const channel = bet.channelId;
+  const betAccepts = betAcceptDB.getAllBetAcceptsForBet(betId);
+  betService.closeBet(bet, betAccepts, result);
+
+  let usersToPing = [bet.userId, ...betAccepts.map(ba => ba.userId)];
+  usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
+
+  //TODO better messaging about points distributed.
+  message = `Hey ${usersToPing.join(", ")},\nThe mob has spoken and the outcome of this bet was ${this.getResultDisplay(result)}. This bet is now closed. Happy Gambling!`;
+
+  await app.client.chat.update({
+    token: context.botToken,
+    channel: bet.channelId,
+    ts: bet.postId,
+    blocks: betViewUtilities.getBetPostView(bet, betDB.statusFinished, 0),
+  });
+
+  await app.client.chat.postMessage({
+    token: context.botToken,
+    channel: bet.channelId,
+    thread_ts: bet.postId,
+    text: message,
+  });
+}
+
 exports.handleSubmitResultsFromChannel = async (app, body, context) => {
   try {
     const postId = body.message.ts;
@@ -42,88 +83,27 @@ exports.handleSubmitResultsFromChannel = async (app, body, context) => {
       blocks.push(blockKitUtilities.markdownSection('Sorry, you are not a part of this bet, so you cannot submit results.'));
     } else {
       let options = [
-        {
-          text: {
-            type: "plain_text",
-            text: ":yes:",
-            emoji: true,
-          },
-          value: "yes",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: ":no:",
-            emoji: true,
-          },
-          value: "no",
-        },
-        {
-          text: {
-            type: "plain_text",
-            text: "Inconclusive :notsureif:",
-            emoji: true,
-          },
-          value: "cancel",
-        },
+        blockKitUtilities.option(":yes:", "yes"),
+        blockKitUtilities.option(":no:", "no"),
+        blockKitUtilities.option("Inconclusive :notsureif:", "cancel"),
       ];
       if (betHasDispute) {
-        options.push({
-          text: {
-            type: "plain_text",
-            text: "Settle dispute with mob vote.",
-            emoji: true,
-          },
-          value: "dispute",
-        });
+        options.push(blockKitUtilities.option("Settle dispute with mob vote.", "dispute"));
       }
 
-      blocks.push(...[
-        {
-          type: "input",
-          label: {
-            type: "plain_text",
-            text: "Did it happen?",
-          },
-          block_id: "bet_result",
-          element: {
-            type: "static_select",
-            placeholder: {
-              type: "plain_text",
-              text: "Did it happen?",
-            },
-            action_id: "bet_result_input",
-            options: options,
-          },
-        },
-      ]);
+      blocks.push(blockKitUtilities.selectInput("bet_result", "Did it happen?", "Did it happen?", "bet_result_input", options));
     }
-
+    const modalView = blockKitUtilities.modalView("results_submission", "Tell me what happened",
+      {
+        bet: bet,
+      }, blocks, "Submit", userCanSubmit);
     modal = {
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
       trigger_id: body.trigger_id,
       // View payload
-      view: {
-        type: "modal",
-        // View identifier
-        callback_id: "results_submission",
-        title: {
-          type: "plain_text",
-          text: "Tell me what happened",
-        },
-        private_metadata: JSON.stringify({
-          bet: bet,
-        }),
-        blocks: blocks,
-      }
+      view: modalView
     };
-    if (userCanSubmit) {
-      modal.view.submit = {
-        type: "plain_text",
-        text: "Submit",
-      }
-    }
     const result = await app.client.views.open(modal);
 
   } catch (error) {
@@ -189,14 +169,7 @@ exports.setup = (app) => {
     }
     usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
 
-    let resultDisplay = "";
-    if (result === "yes") {
-      resultDisplay = "Yes";
-    } else if (result === "no") {
-      resultDisplay = "No";
-    } else if (result === "cancel") {
-      resultDisplay = "Inconclusive";
-    }
+    let resultDisplay = this.getResultDisplay(result);
 
     let message = "";
     if (bet.result_submissions.length > 1) {
@@ -211,7 +184,7 @@ exports.setup = (app) => {
         acceptorSideResults.includes(creatorSideResults[0])
       ) {
         //There is consensus. Close the bet
-        usersToPing = [userId, ...betAcceptUsers];
+        usersToPing = [bet.userId, ...betAcceptUsers];
         usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
         message = `Hey ${usersToPing.join(
           ", "

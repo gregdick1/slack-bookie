@@ -18,9 +18,9 @@ const validateFieldInputs = async (ack, view, wallet) => {
       errors
     });
 
-    return { 
+    return {
       errors,
-      input: undefined 
+      input: undefined
     };
   }
 
@@ -55,7 +55,7 @@ const validateFieldInputs = async (ack, view, wallet) => {
     await ack();
   }
 
-  return { errors, inputs: { amount, odds} }
+  return { errors, inputs: { amount, odds } }
 }
 
 exports.setupBets = (app) => {
@@ -83,76 +83,30 @@ exports.setupBets = (app) => {
       }
 
       try {
+        const modalViewBlocks = [
+          blockKitUtilities.markdownSection("Let's make a bet!"),
+          blockKitUtilities.markdownSection(`You have ${wallet.points} points available`),
+          blockKitUtilities.divider(),
+          blockKitUtilities.textInput("bet_scenario", "I bet that...", "dreamy_input", true),
+          blockKitUtilities.textInput("amount_input", "How many points?", "amount_input"),
+          blockKitUtilities.textInput("odds_input", "At odds of:", "odds_input", false, "1:1"),
+
+          // blockKitUtilities.divider(),
+          // blockKitUtilities.markdownSectionWithAccessoryButton(
+          //   "Once you've entered an amount and odds, this section can show you the payouts before you submit the bet",
+          //   "Calculate Payouts",
+          //   "recalc_payouts"
+          // ),
+        ];
+        const modalView = blockKitUtilities.modalView("bet_creation", "Create a Bet", {
+          wallet: wallet,
+        }, modalViewBlocks, "Submit", true);
         const result = await app.client.views.open({
           token: context.botToken,
           // Pass a valid trigger_id within 3 seconds of receiving it
           trigger_id: body.trigger_id,
           // View payload
-          view: {
-            type: "modal",
-            // View identifier
-            callback_id: "bet_creation",
-            title: {
-              type: "plain_text",
-              text: "Create a Bet",
-            },
-            private_metadata: JSON.stringify({
-              wallet: wallet,
-            }),
-            blocks: [
-              blockKitUtilities.markdownSection("Let's make a bet!"),
-              blockKitUtilities.markdownSection(`You have ${wallet.points} points available`),
-              blockKitUtilities.divider(),
-              {
-                type: "input",
-                block_id: "bet_scenario",
-                label: {
-                  type: "plain_text",
-                  text: "I bet that...",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "dreamy_input",
-                  multiline: true,
-                },
-              },
-              {
-                type: "input",
-                block_id: "amount_input",
-                label: {
-                  type: "plain_text",
-                  text: "How many points?",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "amount_input",
-                },
-              },
-              {
-                type: "input",
-                block_id: "odds_input",
-                label: {
-                  type: "plain_text",
-                  text: "At odds of:",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "odds_input",
-                  initial_value: "1:1"
-                },
-              },
-              // blockKitUtilities.divider(),
-              // blockKitUtilities.markdownSectionWithAccessoryButton(
-              //   "Once you've entered an amount and odds, this section can show you the payouts before you submit the bet",
-              //   "Calculate Payouts",
-              //   "recalc_payouts"
-              // ),
-            ],
-            submit: {
-              type: "plain_text",
-              text: "Submit",
-            },
-          },
+          view: modalView,
         });
       } catch (error) {
         console.error(error);
@@ -169,7 +123,7 @@ exports.setupBets = (app) => {
 
   //   const { errors, inputs } = await validateFieldInputs(ack, view, wallet);
   //   if (errors) return;
-    
+
   //   console.log("no errrors");
   // });
 
@@ -186,7 +140,7 @@ exports.setupBets = (app) => {
 
     const md = JSON.parse(view.private_metadata);
     const wallet = md.wallet;
-    const { errors,  inputs: { amount, odds } } = await validateFieldInputs(ack, view, wallet)
+    const { errors, inputs: { amount, odds } } = await validateFieldInputs(ack, view, wallet)
 
     if (errors) return;
 
@@ -203,7 +157,7 @@ exports.setupBets = (app) => {
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', canTake)
+      blocks: betViewUtilities.getBetPostView(temp_bet, betDB.statusOpen, canTake)
     });
 
     const postId = result.ts;

@@ -13,3 +13,8 @@ exports.formatDate = (epochDate) => {
 exports.formatSlackUserId = (slackUserId) => {
     return `<@${slackUserId}>`;
 }
+
+
+exports.formatChannelId = (channelId) => {
+    return `<#${channelId}>`;
+}

@@ -64,6 +64,33 @@ exports.getUserBetsForChannel = (userId, channelId, walletId) => {
   return addPostUrls(existingBets);
 };
 
+exports.getUnfinishedBetsForChannel = (channelId) => {
+  let existingBets = []
+  db.find(
+    {
+      channelId: channelId,
+      status: this.statusOpen,
+    },
+    (err, results) => {
+      if (results) {
+        existingBets.push(...results);
+      }
+    }
+  );
+  db.find(
+    {
+      channelId: channelId,
+      status: this.statusClosed,
+    },
+    (err, results) => {
+      if (results) {
+        existingBets.push(...results);
+      }
+    }
+  );
+  return existingBets;
+}
+
 exports.getBetByUserChannelScenario = (
   userId,
   channelId,
