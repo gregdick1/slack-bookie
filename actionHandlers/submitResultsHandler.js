@@ -1,18 +1,105 @@
-const walletDb = require("../db/wallet");
-const betDb = require("../db/bet");
-const betAcceptDb = require("../db/betAccept");
+const walletDB = require("../db/wallet");
+const betDB = require("../db/bet");
+const betAcceptDB = require("../db/betAccept");
+const utilities = require('../utilities/utilities');
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
+const mobVotehandler = require("./mobVoteHandler");
 
 exports.handleSubmitResultsFromChannel = async (app, body, context) => {
   try {
     const postId = body.message.ts;
     const channel = body.channel.id;
-    const bet = betDb.getBetByPostId(channel, postId);
+    const bet = betDB.getBetByPostId(channel, postId);
+    const betAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
 
-    //TODO check if user is associated with the bet
+    let userCanSubmit = false;
+    const user = body.user.id;
+    if (user === bet.userId) {
+      userCanSubmit = true;
+    } else {
+      const betAcceptUsers = betAccepts.map(x => x.userId);
+      if (betAcceptUsers.includes(user)) {
+        userCanSubmit = true;
+      }
+    }
 
-    const result = await app.client.views.open({
+    let betHasDispute = false;
+    if (bet.result_submissions && bet.result_submissions.length > 1) {
+      const creatorSideResults = bet.result_submissions.filter((x) => x.betSide == "creator").map((x) => x.result);
+      const acceptorSideResults = bet.result_submissions.filter((x) => x.betSide == "acceptor").map((x) => x.result);
+      if (creatorSideResults.length > 0 && acceptorSideResults.length > 0) {
+        betHasDispute = true;
+      }
+    }
+
+    let blocks = [
+      blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
+      blockKitUtilities.markdownSection(bet.scenarioText),
+      blockKitUtilities.divider()
+    ];
+    if (!userCanSubmit) {
+      blocks.push(blockKitUtilities.markdownSection('Sorry, you are not a part of this bet, so you cannot submit results.'));
+    } else {
+      let options = [
+        {
+          text: {
+            type: "plain_text",
+            text: ":yes:",
+            emoji: true,
+          },
+          value: "yes",
+        },
+        {
+          text: {
+            type: "plain_text",
+            text: ":no:",
+            emoji: true,
+          },
+          value: "no",
+        },
+        {
+          text: {
+            type: "plain_text",
+            text: "Inconclusive :notsureif:",
+            emoji: true,
+          },
+          value: "cancel",
+        },
+      ];
+      if (betHasDispute) {
+        options.push({
+          text: {
+            type: "plain_text",
+            text: "Settle dispute with mob vote.",
+            emoji: true,
+          },
+          value: "dispute",
+        });
+      }
+
+      blocks.push(...[
+        {
+          type: "input",
+          label: {
+            type: "plain_text",
+            text: "Did it happen?",
+          },
+          block_id: "bet_result",
+          element: {
+            type: "static_select",
+            placeholder: {
+              type: "plain_text",
+              text: "Did it happen?",
+            },
+            action_id: "bet_result_input",
+            options: options,
+          },
+        },
+      ]);
+    }
+
+    modal = {
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
       trigger_id: body.trigger_id,
@@ -28,55 +115,17 @@ exports.handleSubmitResultsFromChannel = async (app, body, context) => {
         private_metadata: JSON.stringify({
           bet: bet,
         }),
-        blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
-          blockKitUtilities.markdownSection(bet.scenarioText), {
-            type: "input",
-            label: {
-              type: "plain_text",
-              text: "Did it happen?",
-            },
-            block_id: "bet_result",
-            element: {
-              type: "static_select",
-              placeholder: {
-                type: "plain_text",
-                text: "Did it happen?",
-              },
-              action_id: "bet_result_input",
-              options: [{
-                  text: {
-                    type: "plain_text",
-                    text: ":yes:",
-                    emoji: true,
-                  },
-                  value: "yes",
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: ":no:",
-                    emoji: true,
-                  },
-                  value: "no",
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Inconclusive :notsureif:",
-                    emoji: true,
-                  },
-                  value: "cancel",
-                },
-              ],
-            },
-          },
-        ],
-        submit: {
-          type: "plain_text",
-          text: "Submit",
-        },
-      },
-    });
+        blocks: blocks,
+      }
+    };
+    if (userCanSubmit) {
+      modal.view.submit = {
+        type: "plain_text",
+        text: "Submit",
+      }
+    }
+    const result = await app.client.views.open(modal);
+
   } catch (error) {
     console.error(error);
   }
@@ -88,37 +137,37 @@ exports.setup = (app) => {
   //Note this method assumes the caller has pulled a fresh version of the bet
   const close_bet = (bet, betAccepts, result) => {
     if (["yes", "no"].includes(result)) {
-      bet.status = betDb.statusFinished;
+      bet.status = betDB.statusFinished;
     } else if (result === "inconclusive") {
-      bet.status = betDb.statusCanceled;
+      bet.status = betDB.statusCanceled;
     }
-    betDb.save();
+    betDB.save();
 
     if (result === "yes") {
       //Creator is winner. They get points from the bet accepts as well as the original bet points back
-      let creatorWallet = walletDb.getWalletById(bet.walletId);
+      let creatorWallet = walletDB.getWalletById(bet.walletId);
       creatorWallet.points += bet.pointsBet;
       betAccepts.forEach((ba) => {
         creatorWallet.points += ba.pointsBet;
       });
-      walletDb.save();
+      walletDB.save();
     } else if (result === "no") {
       //Acceptors win, they receive the payouts from their bet accepts
       betAccepts.forEach((ba) => {
-        let acceptorWallet = walletDb.getWalletById(ba.walletId);
+        let acceptorWallet = walletDB.getWalletById(ba.walletId);
         acceptorWallet.points += ba.payout;
       });
-      walletDb.save();
+      walletDB.save();
     } else if (result === "cancel") {
       //Everyone gets their original points back
-      let creatorWallet = walletDb.getWalletById(bet.walletId);
+      let creatorWallet = walletDB.getWalletById(bet.walletId);
       creatorWallet.points += bet.pointsBet;
 
       betAccepts.forEach((ba) => {
-        let acceptorWallet = walletDb.getWalletById(ba.walletId);
+        let acceptorWallet = walletDB.getWalletById(ba.walletId);
         acceptorWallet.points += ba.pointsBet;
       });
-      walletDb.save();
+      walletDB.save();
     }
   };
 
@@ -127,7 +176,7 @@ exports.setup = (app) => {
     const userId = body.user.id;
 
     const md = JSON.parse(view.private_metadata);
-    const bet = betDb.getBetById(md.bet._id); //get it from the database so we can modify and save it
+    const bet = betDB.getBetById(md.bet._id); //get it from the database so we can modify and save it
     if (!bet.result_submissions) {
       bet.result_submissions = [];
     }
@@ -139,13 +188,13 @@ exports.setup = (app) => {
       bet.result_submissions.forEach((rs) => {
         if (rs.userId === userId) {
           rs.result = result;
-          betDb.save();
+          betDB.save();
           newResult = false;
         }
       });
     }
 
-    const betAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
+    const betAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
     const betAcceptUsers = betAccepts.map((x) => x.userId);
     let betSide = "";
     if (userId === bet.userId) {
@@ -163,7 +212,7 @@ exports.setup = (app) => {
         result: result,
         betSide: betSide,
       });
-      betDb.save();
+      betDB.save();
     }
 
     let sideToMessage = "creator";
@@ -177,7 +226,7 @@ exports.setup = (app) => {
     } else if (sideToMessage === "acceptor") {
       usersToPing.push(...betAcceptUsers);
     }
-    usersToPing = usersToPing.map((x) => `<@${x}>`);
+    usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
 
     let resultDisplay = "";
     if (result === "yes") {
@@ -202,7 +251,7 @@ exports.setup = (app) => {
       ) {
         //There is consensus. Close the bet
         usersToPing = [userId, ...betAcceptUsers];
-        usersToPing = usersToPing.map((x) => `<@${x}>`);
+        usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
         message = `Hey ${usersToPing.join(
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
@@ -212,7 +261,7 @@ exports.setup = (app) => {
           token: context.botToken,
           channel: bet.channelId,
           ts: bet.postId,
-          blocks: betViewUtilities.getBetPostView(bet, 'Finished', 0),
+          blocks: betViewUtilities.getBetPostView(bet, betDB.statusFinished, 0),
         });
       } else if (
         creatorSideResults.length > 0 &&
@@ -220,13 +269,13 @@ exports.setup = (app) => {
       ) {
         //There is a dispute
         message =
-          `Hey ${usersToPing.join(", ")},\n<@${userId}> has said the` +
+          `Hey ${usersToPing.join(", ")},\n${utilities.formatSlackUserId(userId)} has said the` +
           ` result of this bet was ${resultDisplay} which means we have a dispute. You or they can resubmit your vote to change if there was a mistake. Otherwise, resubmit and choose to send it to the mob for a vote to resolve this bet.`;
       }
     } else if (bet.result_submissions.length === 1) {
       //Tell the other side to confirm or dispute
       message =
-        `Hey ${usersToPing.join(", ")},\n<@${userId}> has said the` +
+        `Hey ${usersToPing.join(", ")},\n${utilities.formatSlackUserId(userId)} has said the` +
         ` result of this bet was ${resultDisplay}. Please submit a result to confirm and complete the bet, or dispute it by selecting a different result. Parties can change their voted result until they match, or send the dispute to a mob vote in the channel.`;
     }
 
@@ -254,10 +303,11 @@ exports.setup = (app) => {
     const bet = md.bet;
     const channel = bet.channelId;
 
-    const val =
-      view["state"]["values"]["bet_result"]["bet_result_input"][
-        "selected_option"
-      ]["value"];
-    await handle_submit_results(body, context, val);
+    const val = view["state"]["values"]["bet_result"]["bet_result_input"]["selected_option"]["value"];
+    if (val === 'dispute') {
+      mobVotehandler.handleDispute(app, body, context, bet);
+    } else {
+      await handle_submit_results(body, context, val);
+    }
   });
 };

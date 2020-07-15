@@ -3,6 +3,7 @@ const walletDB = require("../db/wallet");
 const consts = require("../consts");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
+const utilities = require('../utilities/utilities');
 
 const validateFieldInputs = async (ack, view, wallet) => {
   let errors = undefined;
@@ -76,7 +77,7 @@ exports.setupBets = (app) => {
       const wallet = walletDB.getWalletForSeason(channel, user, season);
       if (!wallet) {
         say(
-          `<@${user}> wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``
+          `${utilities.formatSlackUserId(user)} wants to make a bet, but they don't have a wallet! Is this channel set up for gambling? If not, someone should say \`@Bookie Let's gamble!\``
         );
         return;
       }
@@ -213,8 +214,8 @@ exports.setupBets = (app) => {
 
 exports.setup = (app) => {
   app.action({
-      action_id: "set_me_up_fam",
-    },
+    action_id: "set_me_up_fam",
+  },
     async ({
       body,
       ack
@@ -283,8 +284,8 @@ exports.setup = (app) => {
     }
   );
   app.action({
-      action_id: "retire_wallet",
-    },
+    action_id: "retire_wallet",
+  },
     async ({
       body,
       ack

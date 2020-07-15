@@ -1,15 +1,16 @@
-const walletDb = require("../db/wallet");
-const betDb = require("../db/bet");
-const betAcceptDb = require("../db/betAccept");
+const walletDB = require("../db/wallet");
+const betDB = require("../db/bet");
+const betAcceptDB = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
+const utilities = require('../utilities/utilities');
 
 exports.handleBetAccept = async (app, body, context) => {
   try {
     const postId = body.message.ts;
     const channel = body.channel.id;
-    const bet = betDb.getBetByPostId(channel, postId);
-    const existingAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
+    const bet = betDB.getBetByPostId(channel, postId);
+    const existingAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
     const canTake = Math.trunc(bet.odds.numerator * bet.pointsBet / bet.odds.denominator)
     const currentKitty = existingAccepts.reduce(
       (current, next) => current + next.pointsBet,
@@ -17,7 +18,7 @@ exports.handleBetAccept = async (app, body, context) => {
     );
     const remainingBet = canTake - currentKitty;
 
-    const wallet = walletDb.getWallet(channel, body.user.id);
+    const wallet = walletDB.getWallet(channel, body.user.id);
     const result = await app.client.views.open({
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
@@ -36,26 +37,26 @@ exports.handleBetAccept = async (app, body, context) => {
           kitty: currentKitty,
           wallet: wallet,
         }),
-        blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
-          blockKitUtilities.markdownSection(bet.scenarioText),
-          blockKitUtilities.markdownSection(`You currently have ${
-                wallet.points
-              } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
-                remainingBet,
-                wallet.points
-              )} pts.`),
-          {
-            type: "input",
-            block_id: "amount_input",
-            label: {
-              type: "plain_text",
-              text: "How many points would you like to bet?",
-            },
-            element: {
-              type: "plain_text_input",
-              action_id: "amount_input",
-            },
+        blocks: [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
+        blockKitUtilities.markdownSection(bet.scenarioText),
+        blockKitUtilities.markdownSection(`You currently have ${
+          wallet.points
+          } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+            remainingBet,
+            wallet.points
+          )} pts.`),
+        {
+          type: "input",
+          block_id: "amount_input",
+          label: {
+            type: "plain_text",
+            text: "How many points would you like to bet?",
           },
+          element: {
+            type: "plain_text_input",
+            action_id: "amount_input",
+          },
+        },
         ],
         submit: {
           type: "plain_text",
@@ -115,12 +116,12 @@ exports.setup = (app) => {
       token: context.botToken,
       channel: channel,
       thread_ts: bet.postId,
-      text: `<@${user}> has accepted this bet!`,
+      text: `${utilities.formatSlackUserId(user)} has accepted this bet!`,
     });
 
     let payout = amount + Math.trunc(bet.odds.denominator * amount / bet.odds.numerator);
 
-    betAcceptDb.addBetAccept(
+    betAcceptDB.addBetAccept(
       bet._id,
       user,
       channel,
@@ -128,12 +129,12 @@ exports.setup = (app) => {
       amount,
       payout
     );
-    walletDb.updateBalance(wallet._id, -amount);
+    walletDB.updateBalance(wallet._id, -amount);
 
     const totalPaid = md.kitty + amount;
     let status = "Open";
     if (totalPaid == canTake) {
-      betDb.setBetStatus(bet._id, betDb.statusClosed);
+      betDB.setBetStatus(bet._id, betDB.statusClosed);
       status = "Closed";
     }
 

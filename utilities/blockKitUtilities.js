@@ -12,6 +12,11 @@ exports.markdownSection = (textForSection) => {
     };
 };
 
+
+exports.formatField = (fieldName, text) => {
+    return `*${fieldName}:* ${text}`;
+}
+
 exports.markdownSectionWithAccessoryImage = (textForSection, imageUrl, imageAltText) => {
     return {
         type: "section",
@@ -45,6 +50,32 @@ exports.markdownSectionWithAccessoryButton = (textForSection, buttonText, button
     };
 };
 
+exports.overflowOption = (text, value) => {
+    return {
+        text: {
+            type: 'plain_text',
+            text: text,
+        },
+        value: value
+    };
+};
+
+exports.markdownSectionWithOverflow = (textForSection, blockId, accessoryActionId, overflowOptions) => {
+    return {
+        type: 'section',
+        block_id: blockId,
+        text: {
+            type: 'mrkdwn',
+            text: textForSection,
+        },
+        accessory: {
+            type: 'overflow',
+            action_id: accessoryActionId,
+            options: overflowOptions
+        }
+    };
+};
+
 exports.markdownWithFieldsSection = (arrayOfTextFields) => {
     let arrayFields = [];
     arrayOfTextFields.forEach(fieldText => {
@@ -75,7 +106,7 @@ exports.buttonAction = (blockId, buttonText, actionId, buttonStyle) => {
             },
             style: buttonStyle,
             action_id: actionId,
-        }, ],
+        },],
     }
 }
 

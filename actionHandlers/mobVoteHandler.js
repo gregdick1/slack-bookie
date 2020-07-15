@@ -1,6 +1,52 @@
-const mobVoteDb = require("../db/mobVote");
-const walletDb = require("../db/wallet");
+const mobVoteDB = require("../db/mobVote");
+const walletDB = require("../db/wallet");
 const consts = require("../consts");
+const blockKitUtilities = require ("../utilities/blockKitUtilities");
+
+const getResultDisplay = (result) => {
+  if (result === 'yes') {
+    return 'Yes';
+  } else if (result === 'no') {
+    return 'No';
+  } else if (result === 'cancel') {
+    return 'Inconclusive';
+  }
+}
+
+exports.handleDispute = async (app, body, context, bet) => {
+  if (!bet.result_submissions || bet.result_submissions.length < 2) {
+    return;
+  }
+
+  let submissionText = bet.result_submissions.map((rs) => {
+    return `<@${rs.userId}> said the result was ${getResultDisplay(rs.result)}`
+  }).join(', ');
+
+  let result = await app.client.conversations.members({
+    token: context.botToken,
+    channel: bet.channelId,
+  });
+  votesNeeded = (result.members.length - 1) / 3; //minus one accounts for the bot itself
+
+  result = await app.client.chat.postMessage({
+    token: context.botToken,
+    channel: bet.channelId,
+    blocks: [
+      blockKitUtilities.markdownSection('We have a dispute that needs settled!'),
+      blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
+      blockKitUtilities.divider(),
+      blockKitUtilities.markdownSection(bet.scenarioText),
+      blockKitUtilities.divider(),
+      blockKitUtilities.markdownSection(submissionText),
+      blockKitUtilities.markdownSection(`React with your vote of :yes:, :no:, or :notsureif: for inconclusive. First choice to receive ${votesNeeded} votes in the next 24 hours will win.`)
+    ],
+  });
+
+  postId = result.ts;
+  let lockoutTime = new Date();
+  lockoutTime.setDate(lockoutTime.getDate() + 1);
+  mobVoteDb.createMobVote(bet.channelId, postId, 'dispute', lockoutTime, votesNeeded);
+}
 
 exports.setup = (app) => {
 
@@ -18,7 +64,7 @@ exports.setup = (app) => {
     votesNeeded = (result.members.length - 1) / 2; //minus one accounts for the bot itself
     //We might end up with a number like 10.5, but that's okay because our logic later will still require 11 votes and that's what we want
 
-    mobVoteDb.createMobVote(channel, postId, type, lockoutTime, votesNeeded);
+    mobVoteDB.createMobVote(channel, postId, type, lockoutTime, votesNeeded);
   }
 
   // Listen for a slash command invocation
@@ -59,13 +105,13 @@ exports.setup = (app) => {
       token: context.botToken,
       channel: channel,
     });
-  
-    const currentSeason = walletDb.getCurrentSeason(channel);
+
+    const currentSeason = walletDB.getCurrentSeason(channel);
     result.members.forEach((item, index) => {
       if (item === consts.botId) {
         return;
       }
-      walletDb.addWallet(channel, item, consts.defaultPoints, currentSeason + 1);
+      walletDB.addWallet(channel, item, consts.defaultPoints, currentSeason + 1);
     });
 
     say(`The people have spoken! The channel has been reset and everybody now has ${consts.defaultPoints} points.`);
@@ -73,11 +119,11 @@ exports.setup = (app) => {
   };
 
   const giveMorePoints = async (channel, say) => {
-    let wallets = walletDb.getAllWalletsForSeason(channel, walletDb.getCurrentSeason(channel), false)
+    let wallets = walletDB.getAllWalletsForSeason(channel, walletDB.getCurrentSeason(channel), false)
     wallets.forEach((w) => {
       w.points += consts.defaultPoints;
     });
-    walletDb.save();
+    walletDB.save();
     say(`The people have spoken! Everybody in the channel has been given an extra ${consts.defaultPoints} points.`);
   }
 
@@ -88,11 +134,11 @@ exports.setup = (app) => {
     say
   }) => {
     // See if it's a mob vote that can still be voted on
-    if (body.event.reaction === "yes") {
+    if (body.event.reaction === "yes" || body.event.reaction === "no" || body.event.reaction === "notsureif") {
       const postId = body.event.item.ts;
       const channel = body.event.item.channel;
 
-      let votePost = mobVoteDb.getMobVote(channel, postId);
+      let votePost = mobVoteDB.getMobVote(channel, postId);
       const currentTime = new Date();
       if (votePost !== null && !votePost.handled && currentTime < new Date(votePost.lockoutTime)) {
         const result = await app.client.reactions.get({
@@ -116,7 +162,7 @@ exports.setup = (app) => {
             //TODO
           }
           votePost.handled = true;
-          mobVoteDb.save();
+          mobVoteDB.save();
         }
       }
     }

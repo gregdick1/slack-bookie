@@ -5,6 +5,7 @@ const betDB = require("./db/bet");
 const consts = require('./consts');
 const utilities = require('./utilities/utilities');
 const blockKitUtilities = require('./utilities/blockKitUtilities');
+const betViewUtilities = require('./utilities/betViewUtilities');
 const sortUtilities = require('./utilities/sortUtilities');
 
 exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
@@ -19,7 +20,7 @@ exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUse
 const publishHomeView = async (args) => {
     await axios
         .post(`${consts.apiBase}/views.publish`, qs.stringify(args))
-        .then(function (response) {})
+        .then(function (response) { })
         .catch(function (error) {
             console.log(error);
         });
@@ -54,8 +55,7 @@ const summaryBlock = (walletsForUser, betsForUser, allBetAcceptsForUser) => {
     const inactiveWalletPoints = utilities.sumThing(inactiveWallets, "points");
     const totalBetPoints = utilities.sumThing(betsForUser, "pointsBet");
     const totalBetAcceptPoints = utilities.sumThing(allBetAcceptsForUser, "pointsBet");
-    return blockKitUtilities.markdownSection(`*Summary*
-You have ${activeWalletCount} active wallets with a total of ${activeWalletPoints} points.
+    return blockKitUtilities.markdownSection(`You have ${activeWalletCount} active wallets with a total of ${activeWalletPoints} points.
 You have ${inactiveWalletCount} inactive wallets with a total of ${inactiveWalletPoints} points.
 You have ${betCount} created bets for a total of ${totalBetPoints} points.
 You have ${betAcceptCount} accepted bets for a total of ${totalBetAcceptPoints} points.
@@ -67,12 +67,13 @@ const betSummaryView = (bet, wallet) => {
     const betAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
     const betAcceptPoints = utilities.sumThing(betAccepts, 'pointsBet');
     const demFields = [
-        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)}`,
-        `*Scenario Text:* ${bet.scenarioText}`,
-        `*Bet Created:* ${dateCreatedString}`,
-        `*Bet Accepts:* ${betAccepts.length}`,
-        `*Bet Accepted Points:* ${betAcceptPoints}`,
-        `*Original Post:* <${bet.postUrl}|Open>`,
+        blockKitUtilities.formatField('Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
+        blockKitUtilities.formatField('Scenario Text', bet.scenarioText),
+        blockKitUtilities.formatField('Bet Created', dateCreatedString),
+        blockKitUtilities.formatField('Bet Accepts', betAccepts.length),
+        blockKitUtilities.formatField('Bet Accepted Points', betAcceptPoints),
+        blockKitUtilities.formatField('Original Post', `<${bet.postUrl}|Open>`),
+        blockKitUtilities.formatField('Bet Status', betViewUtilities.formatBetStatus(bet.status)),
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
 };
@@ -82,12 +83,13 @@ const betAcceptSummaryView = (betAccept, wallet) => {
     const bet = betDB.getBetById(betAccept.betId);
     const dateCreatedString = utilities.formatDate(bet.dateCreated);
     const demFields = [
-        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)}`,
-        `*Bet Text:* ${bet.scenarioText}`,
-        `*Bet Created:* ${dateCreatedString}`,
-        `*Bet Accepted:* ${dateAcceptedString}`,
-        `*Bet Creator:* <@${bet.userId}>`,
-        `*Original Post:* <${bet.postUrl}|Open>`,
+        blockKitUtilities.formatField('Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)),
+        blockKitUtilities.formatField('Bet Text', bet.scenarioText),
+        blockKitUtilities.formatField('Bet Created', dateCreatedString),
+        blockKitUtilities.formatField('Bet Accepted', dateAcceptedString),
+        blockKitUtilities.formatField('Bet Creator', utilities.formatSlackUserId(bet.userId)),
+        blockKitUtilities.formatField('Original Post', `<${bet.postUrl}|Open>`),
+        blockKitUtilities.formatField('Bet Status', betViewUtilities.formatBetStatus(bet.status)),
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
 }
@@ -95,12 +97,12 @@ const betAcceptSummaryView = (betAccept, wallet) => {
 const walletSummaryView = (wallet) => {
     const initialPoints = wallet.initialPointBalance ? wallet.initialPointBalance : consts.defaultPoints;
     const demFields = [
-        `*Channel:* <#${wallet.channelId}>`,
-        `*Points:* ${utilities.strikethroughIfInactive(!wallet.betsAreActive,wallet.points)}`,
-        `*Season:* ${wallet.season}`,
-        `*Retired:* ${wallet.retired ? true : false}`,
-        `*Is Active:* ${wallet.isActiveSeason ? true : false}`,
-        `*Initial Points:* ${initialPoints}`
+        blockKitUtilities.formatField('Channel', `<#${wallet.channelId}>`),
+        blockKitUtilities.formatField('Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, wallet.points)),
+        blockKitUtilities.formatField('Season', wallet.season),
+        blockKitUtilities.formatField('Retired', wallet.retired ? true : false),
+        blockKitUtilities.formatField('Is Active', wallet.isActiveSeason ? true : false),
+        blockKitUtilities.formatField('Initial Points', initialPoints),
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
 };
