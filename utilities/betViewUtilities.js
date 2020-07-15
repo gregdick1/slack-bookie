@@ -13,15 +13,22 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   }
   blocks.push(blockKitUtilities.divider());
 
+  let finishedText = '';
+  if (statusDisplay === 'Finished'){
+    finishedText = ' *Result:* Implement Me'
+  }
+
   blocks.push({
     type: 'context',
     elements: [
       {
         type: "mrkdwn",
-        text: `*Status:* ${statusDisplay}  *Amount:* ${bet.pointsBet} pts  *Remaining:* ${pointsRemaining} pts`,
+        text: `*Status:* ${statusDisplay}  *Amount:* ${bet.pointsBet} pts  *Remaining:* ${pointsRemaining} pts ${finishedText}`,
       },
     ]
   });
-  blocks.push(blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel"));
+  if (['Open', 'Closed'].includes(statusDisplay)){
+    blocks.push(blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel"));
+  }
   return blocks;
 }

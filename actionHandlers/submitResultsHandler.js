@@ -2,6 +2,7 @@ const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
+const betViewUtilities = require("../utilities/betViewUtilities");
 
 exports.setup = (app) => {
   app.action({
@@ -93,6 +94,7 @@ exports.setup = (app) => {
   );
 
   //Probably a better home for this logic
+  //Note this method assumes the caller has pulled a fresh version of the bet
   const close_bet = (bet, betAccepts, result) => {
     if (["yes", "no"].includes(result)) {
       bet.status = betDb.statusFinished;
@@ -214,6 +216,13 @@ exports.setup = (app) => {
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
         close_bet(bet, betAccepts, result);
+
+        await app.client.chat.update({
+          token: context.botToken,
+          channel: bet.channelId,
+          ts: bet.postId,
+          blocks: betViewUtilities.getBetPostView(bet, 'Finished', 0),
+        });
       } else if (
         creatorSideResults.length > 0 &&
         acceptorSideResults.length > 0
