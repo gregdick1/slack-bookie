@@ -4,6 +4,7 @@ const consts = require("../consts");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 const utilities = require('../utilities/utilities');
+const appHome = require('../apphome');
 
 const validateFieldInputs = async (ack, view, wallet) => {
   let errors = undefined;
@@ -237,17 +238,44 @@ exports.setup = (app) => {
       // do things
     }
   );
+
+  app.view("wallet_retire_confirm", async ({
+    ack,
+    body,
+    view,
+    context
+  }) => {
+    await ack();
+    const user = body.user.id;
+    const md = JSON.parse(view.private_metadata);
+    walletDB.retireWallet(md.wallet._id);
+    appHome.displayHome(user);
+  });
   app.action({
     action_id: "retire_wallet",
   },
     async ({
       body,
-      ack
+      ack,
+      view,
+      context
     }) => {
       await ack();
       const action = body.actions[0];
       const walletId = action.block_id;
-      walletDB.retireWallet(walletId);
+      const wallet = walletDB.getWalletById(walletId);
+      const modalViewBlocks = [
+        blockKitUtilities.markdownSection(`You're about to retire the wallet for ${utilities.formatChannelId(wallet.channelId)}...`),
+        blockKitUtilities.markdownSection("This is permanent. You will not be able to bet until next season"),
+      ];
+      const modalView = blockKitUtilities.modalView("wallet_retire_confirm", "Are you sure?", {
+        wallet: wallet,
+      }, modalViewBlocks, "I'm sure", true);
+      const result = await app.client.views.open({
+        token: context.botToken,
+        trigger_id: body.trigger_id,
+        view: modalView,
+      });
     }
   );
 };

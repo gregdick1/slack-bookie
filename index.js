@@ -38,21 +38,7 @@ app.event("app_home_opened", ({
   if (event.tab !== "home") {
     return;
   }
-
-  const walletsForUser = walletDB.getAllWalletsForUser(event.user, true);
-  const allBetsForUser = betDB.getAllBetsForUser(event.user);
-  const allBetAcceptsForUser = betAcceptDB.getAllBetAcceptsForUser(event.user);
-  appHome.displayHome(
-    event.user,
-    event.channel,
-    walletsForUser,
-    allBetsForUser,
-    allBetAcceptsForUser
-  );
-
-  if (!walletsForUser || walletsForUser.length === 0) {
-    say(`Hello world, and welcome ${utilities.formatSlackUserId(event.user)}`);
-  }
+  appHome.displayHome(event.user);
 });
 
 // Start your app

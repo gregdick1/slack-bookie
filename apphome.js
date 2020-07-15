@@ -1,6 +1,7 @@
 const axios = require("axios");
 const qs = require("qs");
 const betAcceptDB = require("./db/betAccept");
+const walletDB = require("./db/wallet");
 const betDB = require("./db/bet");
 const consts = require('./consts');
 const utilities = require('./utilities/utilities');
@@ -8,11 +9,14 @@ const blockKitUtilities = require('./utilities/blockKitUtilities');
 const betViewUtilities = require('./utilities/betViewUtilities');
 const sortUtilities = require('./utilities/sortUtilities');
 
-exports.displayHome = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
+exports.displayHome = async (slackUser, /*channelId*/) => {
+    const walletsForUser = walletDB.getAllWalletsForUser(slackUser, true);
+    const allBetsForUser = betDB.getAllBetsForUser(slackUser);
+    const allBetAcceptsForUser = betAcceptDB.getAllBetAcceptsForUser(slackUser);
     const args = {
         token: process.env.SLACK_BOT_TOKEN,
         user_id: slackUser,
-        view: await updateView(slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser),
+        view: await updateView(slackUser, /*channelId,*/ walletsForUser, allBetsForUser, allBetAcceptsForUser),
     };
     await publishHomeView(args);
 };
@@ -102,10 +106,10 @@ const walletSummaryView = (wallet) => {
     const initialPoints = wallet.initialPointBalance ? wallet.initialPointBalance : consts.defaultPoints;
     const demFields = [
         blockKitUtilities.formatField('Channel', `<#${wallet.channelId}>`),
-        blockKitUtilities.formatField('Points Not Tied Up in Bets', utilities.strikethroughIfInactive(!wallet.betsAreActive, wallet.points)),
-        blockKitUtilities.formatField('Season', wallet.season),
-        blockKitUtilities.formatField('Retired', wallet.retired ? true : false),
         blockKitUtilities.formatField('Is Active Season', wallet.isActiveSeason ? true : false),
+        blockKitUtilities.formatField('Retired', wallet.retired ? true : false),
+        blockKitUtilities.formatField('Season', wallet.season),
+        blockKitUtilities.formatField('Points Not Tied Up in Bets', utilities.strikethroughIfInactive(!wallet.betsAreActive, wallet.points)),
         blockKitUtilities.formatField('Initial Points', initialPoints),
     ];
     return blockKitUtilities.markdownWithFieldsSection(demFields);
@@ -123,9 +127,9 @@ const betAcceptActionView = (betAccept) => {
     return blockKitUtilities.buttonAction(betAccept._id, 'Do a thing?', 'what_thing', 'primary');
 }
 
-const setMeUpView = (channelId) => {
-    return blockKitUtilities.buttonAction(channelId, "Set Me Up", "set_me_up_fam");
-}
+// const setMeUpView = (channelId) => {
+//     return blockKitUtilities.buttonAction(channelId, "Set Me Up", "set_me_up_fam");
+// }
 
 const homeViewSummary = (blockArray) => {
     return blockKitUtilities.homeView("Bookie Bot!", blockArray);
@@ -139,11 +143,11 @@ const getBetAcceptsForWallet = (allBetAcceptsForUser, walletId) => {
     return allBetAcceptsForUser.filter(ba => ba.walletId == walletId);
 }
 
-const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
+const updateView = async (slackUser, /*channelId, */ walletsForUser, allBetsForUser, allBetAcceptsForUser) => {
     let blockArray = [];
-    if (consts.DEBUG_MODE) {
-        blockArray.push(setMeUpView(channelId));
-    }
+    // if (consts.DEBUG_MODE) {
+    //     blockArray.push(setMeUpView(channelId));
+    // }
     blockArray.push(welcomeBlock(slackUser));
     blockArray.push(blockKitUtilities.dividerBlock);
     if (walletsForUser) {
@@ -156,10 +160,13 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, 
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
             const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
             blockArray.push(walletSummaryView(wallet));
-            blockArray.push(walletActionView(wallet));
+            if (!wallet.retired) {
+                blockArray.push(walletActionView(wallet));
+            }
             blockArray.push(blockKitUtilities.dividerBlock);
             if (betsForThisWallet && betsForThisWallet.length > 0) {
-                blockArray.push(blockKitUtilities.markdownSection(`Here are your created bets in ${utilities.formatChannelId(wallet.channelId)}:`));
+                blockArray.push(blockKitUtilities.markdownSection(
+                    `Here are your created bets in ${utilities.formatChannelId(wallet.channelId)} during season ${wallet.season}:`));
                 betsForThisWallet.sort(sortUtilities.betSortFunc);
                 for (let j = 0; j < betsForThisWallet.length; j++) {
                     const thisBet = betsForThisWallet[j];
@@ -168,7 +175,8 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, 
                 }
             }
             if (betAcceptsForThisWallet && betAcceptsForThisWallet.length > 0) {
-                blockArray.push(blockKitUtilities.markdownSection(`You have agreed to the following bets in ${utilities.formatChannelId(wallet.channelId)}:`));
+                blockArray.push(blockKitUtilities.markdownSection(
+                    `You have agreed to the following bets in ${utilities.formatChannelId(wallet.channelId)} during season ${wallet.season}:`));
                 betAcceptsForThisWallet.sort(sortUtilities.betAcceptSortFunc);
                 for (let j = 0; j < betAcceptsForThisWallet.length; j++) {
                     const thisBetAccept = betAcceptsForThisWallet[j];
