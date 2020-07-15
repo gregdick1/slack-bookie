@@ -1,6 +1,7 @@
 const consts = require("../consts");
 const walletDb = require("../db/wallet");
 const utilities = require('../utilities/utilities');
+const blockKitUtilities = require("../utilities/blockKitUtilities");
 
 const maxNToDisplay = 10;
 
@@ -32,7 +33,7 @@ exports.setup = (app) => {
         toDisplay.map(async (w) => {
           const response = await app.client.users.info({
             token: context.botToken,
-            user: w.slackId,
+            user: w.userId,
           });
 
           userLines.push({

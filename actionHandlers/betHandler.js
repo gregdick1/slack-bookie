@@ -1,11 +1,13 @@
 const betDB = require("../db/bet");
 const walletDB = require("../db/wallet");
 const consts = require("../consts");
+const blockKitUtilities = require("../utilities/blockKitUtilities");
+const betViewUtilities = require("../utilities/betViewUtilities");
 
 exports.setupBets = (app) => {
   // Listen for a slash command invocation
   app.command(
-    `/${consts.commandPrefix}bookie-test`,
+    `/${consts.commandPrefix}bookie-bet`,
     async ({
       ack,
       body,
@@ -123,18 +125,20 @@ exports.setupBets = (app) => {
 
     const channel = wallet.channelId;
 
+    const temp_bet = {
+      userId: user,
+      scenarioText: val,
+      pointsBet: amount
+    }
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: [blockKitUtilities.markdownSection(`<@${user}> wants to make a bet!`),
-        blockKitUtilities.markdownSection(val),
-        blockKitUtilities.markdownSectionWithAccessoryButton(`${amount} pts`, "Accept Bet", "accept_bet"),
-        blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel")
-      ],
+      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', amount)
     });
 
     const postId = result.ts;
     betDB.addBet(user, channel, wallet._id, val, amount, postId);
+    walletDB.updateBalance(wallet._id, -amount);
   });
 };
 

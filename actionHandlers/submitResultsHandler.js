@@ -2,6 +2,8 @@ const walletDb = require("../db/wallet");
 const betDb = require("../db/bet");
 const betAcceptDb = require("../db/betAccept");
 const utilities = require('../utilities/utilities');
+const blockKitUtilities = require("../utilities/blockKitUtilities");
+const betViewUtilities = require("../utilities/betViewUtilities");
 
 exports.setup = (app) => {
   app.action({
@@ -37,7 +39,8 @@ exports.setup = (app) => {
               bet: bet,
             }),
             blocks: [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.slackId)} bet that...`),
-            blockKitUtilities.markdownSection(bet.scenarioText), {
+            blockKitUtilities.markdownSection(bet.scenarioText),
+            {
               type: "input",
               label: {
                 type: "plain_text",
@@ -47,38 +50,35 @@ exports.setup = (app) => {
               element: {
                 type: "static_select",
                 placeholder: {
-                  type: "plain_text",
-                  text: "Did it happen?",
-                },
-                action_id: "bet_result_input",
-                options: [{
-                  text: {
-                    type: "plain_text",
-                    text: ":yes:",
-                    emoji: true,
+                  action_id: "bet_result_input",
+                  options: [{
+                    text: {
+                      type: "plain_text",
+                      text: ":yes:",
+                      emoji: true,
+                    },
+                    value: "yes",
                   },
-                  value: "yes",
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: ":no:",
-                    emoji: true,
+                  {
+                    text: {
+                      type: "plain_text",
+                      text: ":no:",
+                      emoji: true,
+                    },
+                    value: "no",
                   },
-                  value: "no",
-                },
-                {
-                  text: {
-                    type: "plain_text",
-                    text: "Inconclusive :notsureif:",
-                    emoji: true,
+                  {
+                    text: {
+                      type: "plain_text",
+                      text: "Inconclusive :notsureif:",
+                      emoji: true,
+                    },
+                    value: "cancel",
                   },
-                  value: "cancel",
+                  ],
                 },
-                ],
               },
-            },
-            ],
+            }],
             submit: {
               type: "plain_text",
               text: "Submit",
@@ -93,6 +93,7 @@ exports.setup = (app) => {
   );
 
   //Probably a better home for this logic
+  //Note this method assumes the caller has pulled a fresh version of the bet
   const close_bet = (bet, betAccepts, result) => {
     if (["yes", "no"].includes(result)) {
       bet.status = betDb.statusFinished;
@@ -155,7 +156,7 @@ exports.setup = (app) => {
     const betAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
     const betAcceptUsers = betAccepts.map((x) => x.userId);
     let betSide = "";
-    if (userId === bet.slackId) {
+    if (userId === bet.userId) {
       betSide = "creator";
     } else if (betAcceptUsers.includes(userId)) {
       betSide = "acceptor";
@@ -180,7 +181,7 @@ exports.setup = (app) => {
 
     let usersToPing = [];
     if (sideToMessage === "creator") {
-      usersToPing.push(bet.slackId);
+      usersToPing.push(bet.userId);
     } else if (sideToMessage === "acceptor") {
       usersToPing.push(...betAcceptUsers);
     }
@@ -214,6 +215,13 @@ exports.setup = (app) => {
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
         close_bet(bet, betAccepts, result);
+
+        await app.client.chat.update({
+          token: context.botToken,
+          channel: bet.channelId,
+          ts: bet.postId,
+          blocks: betViewUtilities.getBetPostView(bet, 'Finished', 0),
+        });
       } else if (
         creatorSideResults.length > 0 &&
         acceptorSideResults.length > 0

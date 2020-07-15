@@ -32,12 +32,11 @@ exports.createMobVote = (channelId, postId, type, lockoutTime, votesNeeded) => {
   });
 };
 
-exports.getMobVote = (channelId, postId, type) => {
+exports.getMobVote = (channelId, postId) => {
   let vote = null;
   db.find({
       channelId: channelId,
       postId: postId,
-      type: type
     },
     (err, results) => {
       if (results !== undefined) {
