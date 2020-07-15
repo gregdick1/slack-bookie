@@ -74,10 +74,14 @@ exports.formatBetStatus = (status) => {
   return this.betStatusEmoji(status) + ' ' + this.betStatusDisplay(status);
 }
 
-exports.betOutcomeDisplay = (outcome) => {
-  if (outcome === betDB.outcomeCreatorWon) {
-    return "Won";
-  } else if (outcome === betDB.outcomeCreatorLost) {
-    return "Lost";
+exports.betOutcomeDisplay = (outcome, flipPerspective) => {
+  if (flipPerspective === undefined) {
+    flipPerspective = false;
   }
+  if (outcome === betDB.outcomeCreatorWon) {
+    return flipPerspective ? "Lost" : "Won";
+  } else if (outcome === betDB.outcomeCreatorLost) {
+    return flipPerspective ? "Won" : "Lost";
+  }
+  return "??";
 }

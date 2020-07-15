@@ -81,13 +81,17 @@ const betSummaryView = (bet, wallet) => {
         blockKitUtilities.formatField('Scenario Text', bet.scenarioText),
         blockKitUtilities.formatField('Bet Created', dateCreatedString),
         blockKitUtilities.formatField('Bet Accepted By', betAcceptedBy),
-        blockKitUtilities.formatField('Bet Accepted At', dateAcceptedString),
+        //blockKitUtilities.formatField('Bet Accepted At', dateAcceptedString),
         blockKitUtilities.formatField('Accepted Wager Total', betAcceptPoints),
         blockKitUtilities.formatField('Original Post', `<${bet.postUrl}|Open>`),
         blockKitUtilities.formatField('Bet Status', betViewUtilities.formatBetStatus(bet.status)),
         blockKitUtilities.formatField('Odds', betViewUtilities.displayOdds(bet.odds)),
         blockKitUtilities.formatField('Potential Profit', profitString(betAcceptPayouts, betAcceptPoints)),
     ];
+    if (bet.outcome) {
+        demFields.push(blockKitUtilities.formatField('Result', betViewUtilities.betOutcomeDisplay(bet.outcome)));
+    }
+
     return blockKitUtilities.markdownWithFieldsSection(demFields);
 };
 
@@ -112,7 +116,7 @@ const betAcceptSummaryView = (betAccept, wallet) => {
         //blockKitUtilities.formatField('Bet Maximum Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
         blockKitUtilities.formatField('Bet Text', bet.scenarioText),
         blockKitUtilities.formatField('Bet Created', dateCreatedString),
-        blockKitUtilities.formatField('Bet Accepted', dateAcceptedString),
+        //blockKitUtilities.formatField('Bet Accepted', dateAcceptedString),
         blockKitUtilities.formatField('Wager Points', betAccept.pointsBet),
         blockKitUtilities.formatField('Bet Creator', utilities.formatSlackUserId(bet.userId)),
         blockKitUtilities.formatField('Original Post', `<${bet.postUrl}|Open>`),
@@ -121,6 +125,9 @@ const betAcceptSummaryView = (betAccept, wallet) => {
         blockKitUtilities.formatField('Payout', betAccept.payout),
         blockKitUtilities.formatField('Potential Profit', profitStringForBetAccept(betAccept)),
     ];
+    if (bet.outcome) {
+        demFields.push(blockKitUtilities.formatField('Result', betViewUtilities.betOutcomeDisplay(bet.outcome, true)));
+    }
     return blockKitUtilities.markdownWithFieldsSection(demFields);
 }
 
