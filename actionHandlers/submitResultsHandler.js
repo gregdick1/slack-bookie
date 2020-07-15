@@ -24,13 +24,12 @@ exports.handleDisputeVoteResult = async (app, body, context, betId, result) => {
   const bet = betDB.getBetById(betId);
   const channel = bet.channelId;
   const betAccepts = betAcceptDB.getAllBetAcceptsForBet(betId);
-  betService.closeBet(bet, betAccepts, result);
+  let distributionMessage = betService.closeBet(bet, betAccepts, result);
 
   let usersToPing = [bet.userId, ...betAccepts.map(ba => ba.userId)];
   usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
 
-  //TODO better messaging about points distributed.
-  message = `Hey ${usersToPing.join(", ")},\nThe mob has spoken and the outcome of this bet was ${this.getResultDisplay(result)}. This bet is now closed. Happy Gambling!`;
+  message = `Hey ${usersToPing.join(", ")},\nThe mob has spoken and the outcome of this bet was ${this.getResultDisplay(result)}. ${distributionMessage} This bet is now closed. Happy Gambling!`;
 
   await app.client.chat.update({
     token: context.botToken,
@@ -186,10 +185,9 @@ exports.setup = (app) => {
         //There is consensus. Close the bet
         usersToPing = [bet.userId, ...betAcceptUsers];
         usersToPing = usersToPing.map((x) => utilities.formatSlackUserId(x));
-        message = `Hey ${usersToPing.join(
-          ", "
-        )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
-        betService.closeBet(bet, betAccepts, result);
+        
+        let distributionMessage = betService.closeBet(bet, betAccepts, result);
+        message = `Hey ${usersToPing.join(", ")},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. ${distributionMessage} This bet is now closed. Happy Gambling!`;
 
         await app.client.chat.update({
           token: context.botToken,
