@@ -4,6 +4,7 @@ const betDB = require("../db/bet");
 exports.closeBet = (bet, betAccepts, result) => {
   if (["yes", "no"].includes(result)) {
     bet.status = betDB.statusFinished;
+    bet.outcome = result;
   } else if (result === "inconclusive") {
     bet.status = betDB.statusCanceled;
   }
