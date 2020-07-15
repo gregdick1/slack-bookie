@@ -36,7 +36,8 @@ const validateFieldInputs = async (ack, view, wallet) => {
       odds_input: "Odds must be in the format A:B"
     }
   } else {
-    odds = { numerator: match[1], denominator: match[2] };
+    //In the UI, we show the odds from the perspective of the bet acceptors. In the code, we use it in the perspective of the bet creator
+    odds = { numerator: match[2], denominator: match[1] };
   }
 
   if (isNaN(amount)) {
@@ -89,8 +90,9 @@ exports.setupBets = (app) => {
           blockKitUtilities.markdownSection(`You have ${wallet.points} points available`),
           blockKitUtilities.divider(),
           blockKitUtilities.textInput("bet_scenario", "I bet that...", "dreamy_input", true),
-          blockKitUtilities.textInput("amount_input", "How many points?", "amount_input"),
-          blockKitUtilities.textInput("odds_input", "At odds of:", "odds_input", false, "1:1"),
+          blockKitUtilities.textInput("amount_input", "How many points am I putting up?", "amount_input"),
+          blockKitUtilities.textInput("odds_input", "What odds am I giving to others?", "odds_input", false, "1:1"),
+          blockKitUtilities.markdownSection("_e.g. 2:1 means the other people put up half as many points as me._"),
 
           // blockKitUtilities.divider(),
           // blockKitUtilities.markdownSectionWithAccessoryButton(
