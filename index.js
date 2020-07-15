@@ -13,6 +13,7 @@ const mentionHandler = require("./actionHandlers/mentionHandler");
 const submitResultsHandler = require("./actionHandlers/submitResultsHandler");
 const leaderboardHandler = require("./actionHandlers/leaderboardHandler");
 const betActionHandler = require("./actionHandlers/betActionHandler");
+const memberJoinedHandler = require("./actionHandlers/memberJoinedHandler");
 
 const utilities = require('./utilities/utilities');
 
@@ -29,6 +30,7 @@ mobVoteHandler.setup(app);
 submitResultsHandler.setup(app);
 leaderboardHandler.setup(app);
 betActionHandler.setup(app);
+memberJoinedHandler.setup(app);
 
 app.event("app_home_opened", ({
   event,
