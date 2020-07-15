@@ -1,4 +1,4 @@
-const walletDB = require("../db/wallet");
+const betService = require("../services/betService");
 const betDB = require("../db/bet");
 const betAcceptDB = require("../db/betAccept");
 const utilities = require('../utilities/utilities');
@@ -132,45 +132,6 @@ exports.handleSubmitResultsFromChannel = async (app, body, context) => {
 }
 
 exports.setup = (app) => {
-
-  //Probably a better home for this logic
-  //Note this method assumes the caller has pulled a fresh version of the bet
-  const close_bet = (bet, betAccepts, result) => {
-    if (["yes", "no"].includes(result)) {
-      bet.status = betDB.statusFinished;
-    } else if (result === "inconclusive") {
-      bet.status = betDB.statusCanceled;
-    }
-    betDB.save();
-
-    if (result === "yes") {
-      //Creator is winner. They get points from the bet accepts as well as the original bet points back
-      let creatorWallet = walletDB.getWalletById(bet.walletId);
-      creatorWallet.points += bet.pointsBet;
-      betAccepts.forEach((ba) => {
-        creatorWallet.points += ba.pointsBet;
-      });
-      walletDB.save();
-    } else if (result === "no") {
-      //Acceptors win, they receive the payouts from their bet accepts
-      betAccepts.forEach((ba) => {
-        let acceptorWallet = walletDB.getWalletById(ba.walletId);
-        acceptorWallet.points += ba.payout;
-      });
-      walletDB.save();
-    } else if (result === "cancel") {
-      //Everyone gets their original points back
-      let creatorWallet = walletDB.getWalletById(bet.walletId);
-      creatorWallet.points += bet.pointsBet;
-
-      betAccepts.forEach((ba) => {
-        let acceptorWallet = walletDB.getWalletById(ba.walletId);
-        acceptorWallet.points += ba.pointsBet;
-      });
-      walletDB.save();
-    }
-  };
-
   const handle_submit_results = async (body, context, result) => {
     const view = body.view;
     const userId = body.user.id;
@@ -255,7 +216,7 @@ exports.setup = (app) => {
         message = `Hey ${usersToPing.join(
           ", "
         )},\nBoth sides have agreed the outcome of this bet was ${resultDisplay}. This bet is now closed. Happy Gambling!`;
-        close_bet(bet, betAccepts, result);
+        betService.closeBet(bet, betAccepts, result);
 
         await app.client.chat.update({
           token: context.botToken,
