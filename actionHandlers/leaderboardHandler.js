@@ -1,5 +1,6 @@
 const consts = require("../consts");
 const walletDb = require("../db/wallet");
+const blockKitUtilities = require("../utilities/blockKitUtilities");
 
 const maxNToDisplay = 10;
 
