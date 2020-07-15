@@ -87,9 +87,9 @@ exports.setupBets = (app) => {
           blockKitUtilities.markdownSection("Let's make a bet!"),
           blockKitUtilities.markdownSection(`You have ${wallet.points} points available`),
           blockKitUtilities.divider(),
-          blockKitUtilities.input("bet_scneario", "I bet that...", "dreamy_input", true),
-          blockKitUtilities.input("amount_input", "How many points?", "amount_input"),
-          blockKitUtilities.input("odds_input", "At odds of:", "odds_input", false, "1:1"),
+          blockKitUtilities.textInput("bet_scenario", "I bet that...", "dreamy_input", true),
+          blockKitUtilities.textInput("amount_input", "How many points?", "amount_input"),
+          blockKitUtilities.textInput("odds_input", "At odds of:", "odds_input", false, "1:1"),
 
           // blockKitUtilities.divider(),
           // blockKitUtilities.markdownSectionWithAccessoryButton(
@@ -100,7 +100,7 @@ exports.setupBets = (app) => {
         ];
         const modalView = blockKitUtilities.modalView("bet_creation", "Create a Bet", {
           wallet: wallet,
-        }, modalViewBlocks, "Submit");
+        }, modalViewBlocks, "Submit", true);
         const result = await app.client.views.open({
           token: context.botToken,
           // Pass a valid trigger_id within 3 seconds of receiving it

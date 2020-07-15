@@ -29,7 +29,10 @@ exports.homeView = (text, blockArray) => {
 };
 
 exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitText) => {
-    return {
+    if (!submittable) {
+        submittable = true;
+    }
+    var modalView = {
         type: "modal",
         // View identifier
         callback_id: callbackId,
@@ -39,14 +42,37 @@ exports.modalView = (callbackId, titleText, privateMetadata, bkBlocks, submitTex
         },
         private_metadata: JSON.stringify(privateMetadata),
         blocks: bkBlocks,
-        submit: {
+    };
+    if (submittable) {
+        modalView.view.submit = {
             type: "plain_text",
             text: submitText,
-        },
-    };
+        };
+    }
+    return modalView;
 };
 
-exports.input = (blockId, text, actionId, multiline, initialValue) => {
+exports.selectInput = (blockId, labelText, placeholderText, actionId, options) => {
+    return {
+        type: "input",
+        label: {
+            type: "plain_text",
+            text: labelText,
+        },
+        block_id: blockId,
+        element: {
+            type: "static_select",
+            placeholder: {
+                type: "plain_text",
+                text: placeholderText,
+            },
+            action_id: actionId,
+            options: options,
+        },
+    }
+};
+
+exports.textInput = (blockId, text, actionId, multiline, initialValue) => {
     if (!multiline) {
         multiline = false;
     }
@@ -64,7 +90,7 @@ exports.input = (blockId, text, actionId, multiline, initialValue) => {
             initial_value: initialValue,
         },
     };
-}
+};
 
 exports.markdownSectionWithAccessoryImage = (textForSection, imageUrl, imageAltText) => {
     return {
@@ -99,11 +125,12 @@ exports.markdownSectionWithAccessoryButton = (textForSection, buttonText, button
     };
 };
 
-exports.overflowOption = (text, value) => {
+exports.option = (text, value) => {
     return {
         text: {
             type: 'plain_text',
             text: text,
+            emoji: true,
         },
         value: value
     };

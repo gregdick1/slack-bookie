@@ -11,10 +11,10 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
 
   let overflowOptions = [];
   if (statusDisplay === this.statusOpenDisplay) {
-    overflowOptions.push(blockKitUtilities.overflowOption('Accept Bet', 'accept_bet'));
+    overflowOptions.push(blockKitUtilities.option('Accept Bet', 'accept_bet'));
   }
-  overflowOptions.push(blockKitUtilities.overflowOption('Submit Results', 'submit_results'));
-  overflowOptions.push(blockKitUtilities.overflowOption('Cancel Bet', 'cancel_bet'));
+  overflowOptions.push(blockKitUtilities.option('Submit Results', 'submit_results'));
+  overflowOptions.push(blockKitUtilities.option('Cancel Bet', 'cancel_bet'));
 
   const blocks = [
     blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} wants to make a bet!`),

@@ -28,13 +28,13 @@ exports.handleBetAccept = async (app, body, context) => {
         remainingBet,
         wallet.points
       )} pts.`),
-    blockKitUtilities.input("amount_input", "How many points would you like to bet?", "amount_input"),
+    blockKitUtilities.textInput("amount_input", "How many points would you like to bet?", "amount_input"),
     ];
     const modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
       bet: bet,
       kitty: currentKitty,
       wallet: wallet,
-    }, modalViewBlocks, "Submit");
+    }, modalViewBlocks, "Submit", true);
     const result = await app.client.views.open({
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
