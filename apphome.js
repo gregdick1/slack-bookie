@@ -85,7 +85,7 @@ const betAcceptSummaryView = (betAccept, wallet) => {
     const bet = betDB.getBetById(betAccept.betId);
     const dateCreatedString = utilities.formatDate(bet.dateCreated);
     const demFields = [
-        blockKitUtilities.formatField('Bet Maximum Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, betAccept.pointsBet)),
+        blockKitUtilities.formatField('Bet Maximum Points', utilities.strikethroughIfInactive(!wallet.betsAreActive, bet.pointsBet)),
         blockKitUtilities.formatField('Bet Text', bet.scenarioText),
         blockKitUtilities.formatField('Bet Created', dateCreatedString),
         blockKitUtilities.formatField('Bet Accepted', dateAcceptedString),
