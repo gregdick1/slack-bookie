@@ -1,6 +1,6 @@
-const walletDb = require("../db/wallet");
-const betDb = require("../db/bet");
-const betAcceptDb = require("../db/betAccept");
+const walletDB = require("../db/wallet");
+const betDB = require("../db/bet");
+const betAcceptDB = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 
@@ -14,15 +14,15 @@ exports.setup = (app) => {
       try {
         const postId = body.message.ts;
         const channel = body.channel.id;
-        const bet = betDb.getBetByPostId(channel, postId);
-        const existingAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
+        const bet = betDB.getBetByPostId(channel, postId);
+        const existingAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
         const currentKitty = existingAccepts.reduce(
           (current, next) => current + next.pointsBet,
           0
         );
         const remainingBet = bet.pointsBet - currentKitty;
 
-        const wallet = walletDb.getWallet(channel, body.user.id);
+        const wallet = walletDB.getWallet(channel, body.user.id);
         const result = await app.client.views.open({
           token: context.botToken,
           // Pass a valid trigger_id within 3 seconds of receiving it
@@ -42,25 +42,25 @@ exports.setup = (app) => {
               wallet: wallet,
             }),
             blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
-              blockKitUtilities.markdownSection(bet.scenarioText),
-              blockKitUtilities.markdownSection(`You currently have ${
-                    wallet.points
-                  } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
-                    remainingBet,
-                    wallet.points
-                  )} pts.`),
-              {
-                type: "input",
-                block_id: "amount_input",
-                label: {
-                  type: "plain_text",
-                  text: "How many points would you like to bet?",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "amount_input",
-                },
+            blockKitUtilities.markdownSection(bet.scenarioText),
+            blockKitUtilities.markdownSection(`You currently have ${
+              wallet.points
+              } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+                remainingBet,
+                wallet.points
+              )} pts.`),
+            {
+              type: "input",
+              block_id: "amount_input",
+              label: {
+                type: "plain_text",
+                text: "How many points would you like to bet?",
               },
+              element: {
+                type: "plain_text_input",
+                action_id: "amount_input",
+              },
+            },
             ],
             submit: {
               type: "plain_text",
@@ -125,7 +125,7 @@ exports.setup = (app) => {
     //TODO implement odds. Currently always 1:1
     let payout = amount * 2;
 
-    betAcceptDb.addBetAccept(
+    betAcceptDB.addBetAccept(
       bet._id,
       user,
       channel,
@@ -133,17 +133,17 @@ exports.setup = (app) => {
       amount,
       payout
     );
-    walletDb.updateBalance(wallet._id, -amount);
+    walletDB.updateBalance(wallet._id, -amount);
 
     const totalPaid = md.kitty + amount;
     if (totalPaid == bet.pointsBet) {
-      betDb.setBetStatus(bet._id, betDb.statusClosed);
+      betDB.setBetStatus(bet._id, betDB.statusClosed);
 
       const result = await app.client.chat.update({
         token: context.botToken,
         channel: channel,
         ts: bet.postId,
-        blocks: betViewUtilities.getBetPostView(bet, 'Closed', 0),
+        blocks: betViewUtilities.getBetPostView(bet, betDB.statusClosed, 0),
       });
       console.log("Bet is closed! Wahoo!");
     }

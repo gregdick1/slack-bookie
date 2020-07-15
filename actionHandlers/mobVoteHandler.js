@@ -1,5 +1,5 @@
-const mobVoteDb = require("../db/mobVote");
-const walletDb = require("../db/wallet");
+const mobVoteDB = require("../db/mobVote");
+const walletDB = require("../db/wallet");
 const consts = require("../consts");
 
 exports.setup = (app) => {
@@ -18,7 +18,7 @@ exports.setup = (app) => {
     votesNeeded = (result.members.length - 1) / 2; //minus one accounts for the bot itself
     //We might end up with a number like 10.5, but that's okay because our logic later will still require 11 votes and that's what we want
 
-    mobVoteDb.createMobVote(channel, postId, type, lockoutTime, votesNeeded);
+    mobVoteDB.createMobVote(channel, postId, type, lockoutTime, votesNeeded);
   }
 
   // Listen for a slash command invocation
@@ -59,13 +59,13 @@ exports.setup = (app) => {
       token: context.botToken,
       channel: channel,
     });
-  
-    const currentSeason = walletDb.getCurrentSeason(channel);
+
+    const currentSeason = walletDB.getCurrentSeason(channel);
     result.members.forEach((item, index) => {
       if (item === consts.botId) {
         return;
       }
-      walletDb.addWallet(channel, item, consts.defaultPoints, currentSeason + 1);
+      walletDB.addWallet(channel, item, consts.defaultPoints, currentSeason + 1);
     });
 
     say(`The people have spoken! The channel has been reset and everybody now has ${consts.defaultPoints} points.`);
@@ -73,11 +73,11 @@ exports.setup = (app) => {
   };
 
   const giveMorePoints = async (channel, say) => {
-    let wallets = walletDb.getAllWalletsForSeason(channel, walletDb.getCurrentSeason(channel), false)
+    let wallets = walletDB.getAllWalletsForSeason(channel, walletDB.getCurrentSeason(channel), false)
     wallets.forEach((w) => {
       w.points += consts.defaultPoints;
     });
-    walletDb.save();
+    walletDB.save();
     say(`The people have spoken! Everybody in the channel has been given an extra ${consts.defaultPoints} points.`);
   }
 
@@ -92,7 +92,7 @@ exports.setup = (app) => {
       const postId = body.event.item.ts;
       const channel = body.event.item.channel;
 
-      let votePost = mobVoteDb.getMobVote(channel, postId);
+      let votePost = mobVoteDB.getMobVote(channel, postId);
       const currentTime = new Date();
       if (votePost !== null && !votePost.handled && currentTime < new Date(votePost.lockoutTime)) {
         const result = await app.client.reactions.get({
@@ -116,7 +116,7 @@ exports.setup = (app) => {
             //TODO
           }
           votePost.handled = true;
-          mobVoteDb.save();
+          mobVoteDB.save();
         }
       }
     }

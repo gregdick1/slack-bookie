@@ -1,5 +1,5 @@
 const consts = require("../consts");
-const walletDb = require("../db/wallet");
+const walletDB = require("../db/wallet");
 const utilities = require('../utilities/utilities');
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 
@@ -11,8 +11,8 @@ exports.setup = (app) => {
     async ({ ack, body, context, say }) => {
       await ack();
       const channel = body.channel_id;
-      const season = walletDb.getCurrentSeason(channel);
-      const wallets = walletDb.getAllWalletsForSeason(channel, season, false);
+      const season = walletDB.getCurrentSeason(channel);
+      const wallets = walletDB.getAllWalletsForSeason(channel, season, false);
 
       if (!wallets || !wallets.length || wallets.length === 0) {
         say(`${utilities.formatSlackUserId(body.user_id)} oh no! I can't show you a leaderboard because I didn't find any wallets for this season. Has gambling been set up in this channel?`);
