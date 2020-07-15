@@ -1,13 +1,16 @@
 const blockKitUtilities = require("./blockKitUtilities");
 const utilities = require('./utilities');
 const betDB = require("../db/bet");
+const betAcceptDB = require("../db/betAccept");
 
 exports.getBetPostView = (bet, status, pointsRemaining) => {
   let overflowOptions = [];
   if (status === betDB.statusOpen) {
     overflowOptions.push(blockKitUtilities.option('Accept Bet', 'accept_bet'));
   }
-  overflowOptions.push(blockKitUtilities.option('Submit Results', 'submit_results'));
+  if (betAcceptDB.getAllBetAcceptsForBet(bet._id).length > 0) {
+    overflowOptions.push(blockKitUtilities.option('Submit Results', 'submit_results'));
+  }
   overflowOptions.push(blockKitUtilities.option('Cancel Bet', 'cancel_bet'));
 
   const blocks = [
