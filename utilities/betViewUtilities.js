@@ -2,15 +2,9 @@ const blockKitUtilities = require("./blockKitUtilities");
 const utilities = require('./utilities');
 const betDB = require("../db/bet");
 
-exports.statusOpenDisplay = 'Open';
-exports.statusClosedDisplay = 'Closed';
-exports.statusFinishedDisplay = 'Finished';
-exports.statusCanceledDisplay = 'Canceled';
-
-exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
-
+exports.getBetPostView = (bet, status, pointsRemaining) => {
   let overflowOptions = [];
-  if (statusDisplay === this.statusOpenDisplay) {
+  if (status === betDB.statusOpen) {
     overflowOptions.push(blockKitUtilities.overflowOption('Accept Bet', 'accept_bet'));
   }
   overflowOptions.push(blockKitUtilities.overflowOption('Submit Results', 'submit_results'));
@@ -21,7 +15,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
     blockKitUtilities.divider(),
   ]
 
-  if (statusDisplay !== this.statusFinishedDisplay) {
+  if ([betDB.statusOpen, betDB.statusClosed].includes(status)) {
     const sectionWithOverflow = blockKitUtilities.markdownSectionWithOverflow(bet.scenarioText, 'bet_action', 'bet_action_from_channel', overflowOptions);
     blocks.push(sectionWithOverflow);
   } else {
@@ -31,16 +25,16 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   blocks.push(blockKitUtilities.divider());
 
   let finishedText = '';
-  if (statusDisplay === this.statusFinishedDisplay) {
+  if (status === betDB.statusFinished) {
     finishedText = ' *Result:* Implement Me'
   }
-
+  
   blocks.push({
     type: 'context',
     elements: [
       {
         type: "mrkdwn",
-        text: `*Status:* ${statusDisplay}  *Amount:* ${bet.pointsBet} pts  *Remaining:* ${pointsRemaining} pts ${finishedText}`,
+        text: `*Status:* ${this.formatBetStatus(status)}  *Odds:* ${bet.odds.numerator}:${bet.odds.denominator}  *Amount:* ${bet.pointsBet} pts  *Remaining:* ${pointsRemaining} pts ${finishedText}`,
       },
     ]
   });
@@ -58,6 +52,17 @@ exports.betStatusEmoji = (status) => {
   return ':in-progress:';
 }
 
+exports.betStatusDisplay = (status) => {
+  if (status === betDB.statusCanceled) {
+    return 'Canceled';
+  } else if (status === betDB.statusClosed) {
+    return 'Closed';
+  } else if (status === betDB.statusFinished) {
+    return 'Finished';
+  }
+  return 'Open';
+}
+
 exports.formatBetStatus = (status) => {
-  return this.betStatusEmoji(status) + ' ' + status;
+  return this.betStatusEmoji(status) + ' ' + this.betStatusDisplay(status);
 }

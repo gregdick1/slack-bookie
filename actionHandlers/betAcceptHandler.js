@@ -110,10 +110,11 @@ exports.setup = (app) => {
     walletDB.updateBalance(wallet._id, -amount);
 
     const totalPaid = md.kitty + amount;
-    let status = betViewUtilities.statusOpenDisplay;
+
+    let status = betDB.statusOpen;
     if (totalPaid == canTake) {
       betDB.setBetStatus(bet._id, betDB.statusClosed);
-      status = betViewUtilities.statusClosedDisplay;
+      status = betDB.statusClosed;
     }
 
     await app.client.chat.update({

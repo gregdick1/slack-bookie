@@ -87,7 +87,7 @@ exports.setupBets = (app) => {
           blockKitUtilities.markdownSection("Let's make a bet!"),
           blockKitUtilities.markdownSection(`You have ${wallet.points} points available`),
           blockKitUtilities.divider(),
-          blockKitUtilities.input("bet_scneario", "I bet that...", "dreamy_input", true),
+          blockKitUtilities.input("bet_scenario", "I bet that...", "dreamy_input", true),
           blockKitUtilities.input("amount_input", "How many points?", "amount_input"),
           blockKitUtilities.input("odds_input", "At odds of:", "odds_input", false, "1:1"),
 
@@ -157,7 +157,7 @@ exports.setupBets = (app) => {
     const result = await app.client.chat.postMessage({
       token: context.botToken,
       channel: channel,
-      blocks: betViewUtilities.getBetPostView(temp_bet, 'Open', canTake)
+      blocks: betViewUtilities.getBetPostView(temp_bet, betDB.statusOpen, canTake)
     });
 
     const postId = result.ts;
