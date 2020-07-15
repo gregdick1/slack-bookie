@@ -12,6 +12,7 @@ const betAcceptHandler = require("./actionHandlers/betAcceptHandler");
 const mentionHandler = require("./actionHandlers/mentionHandler");
 const submitResultsHandler = require("./actionHandlers/submitResultsHandler");
 const leaderboardHandler = require("./actionHandlers/leaderboardHandler");
+const betActionHandler = require("./actionHandlers/betActionHandler");
 
 const app = new App({
   signingSecret: process.env.SLACK_SIGNING_SECRET,
@@ -25,6 +26,7 @@ mentionHandler.setup(app);
 mobVoteHandler.setup(app);
 submitResultsHandler.setup(app);
 leaderboardHandler.setup(app);
+betActionHandler.setup(app);
 
 app.event("app_home_opened", ({
   event,

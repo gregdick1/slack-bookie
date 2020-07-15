@@ -4,94 +4,85 @@ const betAcceptDb = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 
-exports.setup = (app) => {
-  app.action({
-      action_id: "submit_results_from_channel",
-    },
-    async ({
-      body,
-      ack,
-      context
-    }) => {
-      await ack();
-      try {
-        const postId = body.message.ts;
-        const channel = body.channel.id;
-        const bet = betDb.getBetByPostId(channel, postId);
+exports.handleSubmitResultsFromChannel = async (app, body, context) => {
+  try {
+    const postId = body.message.ts;
+    const channel = body.channel.id;
+    const bet = betDb.getBetByPostId(channel, postId);
 
-        //TODO check if user is associated with the bet
+    //TODO check if user is associated with the bet
 
-        const result = await app.client.views.open({
-          token: context.botToken,
-          // Pass a valid trigger_id within 3 seconds of receiving it
-          trigger_id: body.trigger_id,
-          // View payload
-          view: {
-            type: "modal",
-            // View identifier
-            callback_id: "results_submission",
-            title: {
+    const result = await app.client.views.open({
+      token: context.botToken,
+      // Pass a valid trigger_id within 3 seconds of receiving it
+      trigger_id: body.trigger_id,
+      // View payload
+      view: {
+        type: "modal",
+        // View identifier
+        callback_id: "results_submission",
+        title: {
+          type: "plain_text",
+          text: "Tell me what happened",
+        },
+        private_metadata: JSON.stringify({
+          bet: bet,
+        }),
+        blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
+          blockKitUtilities.markdownSection(bet.scenarioText), {
+            type: "input",
+            label: {
               type: "plain_text",
-              text: "Tell me what happened",
+              text: "Did it happen?",
             },
-            private_metadata: JSON.stringify({
-              bet: bet,
-            }),
-            blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> bet that...`),
-              blockKitUtilities.markdownSection(bet.scenarioText), {
-                type: "input",
-                label: {
-                  type: "plain_text",
-                  text: "Did it happen?",
-                },
-                block_id: "bet_result",
-                element: {
-                  type: "static_select",
-                  placeholder: {
-                    type: "plain_text",
-                    text: "Did it happen?",
-                  },
-                  action_id: "bet_result_input",
-                  options: [{
-                      text: {
-                        type: "plain_text",
-                        text: ":yes:",
-                        emoji: true,
-                      },
-                      value: "yes",
-                    },
-                    {
-                      text: {
-                        type: "plain_text",
-                        text: ":no:",
-                        emoji: true,
-                      },
-                      value: "no",
-                    },
-                    {
-                      text: {
-                        type: "plain_text",
-                        text: "Inconclusive :notsureif:",
-                        emoji: true,
-                      },
-                      value: "cancel",
-                    },
-                  ],
-                },
+            block_id: "bet_result",
+            element: {
+              type: "static_select",
+              placeholder: {
+                type: "plain_text",
+                text: "Did it happen?",
               },
-            ],
-            submit: {
-              type: "plain_text",
-              text: "Submit",
+              action_id: "bet_result_input",
+              options: [{
+                  text: {
+                    type: "plain_text",
+                    text: ":yes:",
+                    emoji: true,
+                  },
+                  value: "yes",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: ":no:",
+                    emoji: true,
+                  },
+                  value: "no",
+                },
+                {
+                  text: {
+                    type: "plain_text",
+                    text: "Inconclusive :notsureif:",
+                    emoji: true,
+                  },
+                  value: "cancel",
+                },
+              ],
             },
           },
-        });
-        console.log(result);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  );
+        ],
+        submit: {
+          type: "plain_text",
+          text: "Submit",
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+exports.setup = (app) => {
 
   //Probably a better home for this logic
   //Note this method assumes the caller has pulled a fresh version of the bet

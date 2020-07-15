@@ -4,76 +4,70 @@ const betAcceptDb = require("../db/betAccept");
 const blockKitUtilities = require("../utilities/blockKitUtilities");
 const betViewUtilities = require("../utilities/betViewUtilities");
 
-exports.setup = (app) => {
-  app.action(
-    {
-      action_id: "accept_bet",
-    },
-    async ({ body, ack, context }) => {
-      await ack();
-      try {
-        const postId = body.message.ts;
-        const channel = body.channel.id;
-        const bet = betDb.getBetByPostId(channel, postId);
-        const existingAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
-        const currentKitty = existingAccepts.reduce(
-          (current, next) => current + next.pointsBet,
-          0
-        );
-        const remainingBet = bet.pointsBet - currentKitty;
+exports.handleBetAccept = async (app, body, context) => {
+  try {
+    const postId = body.message.ts;
+    const channel = body.channel.id;
+    const bet = betDb.getBetByPostId(channel, postId);
+    const existingAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
+    const currentKitty = existingAccepts.reduce(
+      (current, next) => current + next.pointsBet,
+      0
+    );
+    const remainingBet = bet.pointsBet - currentKitty;
 
-        const wallet = walletDb.getWallet(channel, body.user.id);
-        const result = await app.client.views.open({
-          token: context.botToken,
-          // Pass a valid trigger_id within 3 seconds of receiving it
-          trigger_id: body.trigger_id,
-          // View payload
-          view: {
-            type: "modal",
-            // View identifier
-            callback_id: "bet_acception",
-            title: {
+    const wallet = walletDb.getWallet(channel, body.user.id);
+    const result = await app.client.views.open({
+      token: context.botToken,
+      // Pass a valid trigger_id within 3 seconds of receiving it
+      trigger_id: body.trigger_id,
+      // View payload
+      view: {
+        type: "modal",
+        // View identifier
+        callback_id: "bet_acception",
+        title: {
+          type: "plain_text",
+          text: "Accept this Bet",
+        },
+        private_metadata: JSON.stringify({
+          bet: bet,
+          kitty: currentKitty,
+          wallet: wallet,
+        }),
+        blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
+          blockKitUtilities.markdownSection(bet.scenarioText),
+          blockKitUtilities.markdownSection(`You currently have ${
+                wallet.points
+              } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+                remainingBet,
+                wallet.points
+              )} pts.`),
+          {
+            type: "input",
+            block_id: "amount_input",
+            label: {
               type: "plain_text",
-              text: "Accept this Bet",
+              text: "How many points would you like to bet?",
             },
-            private_metadata: JSON.stringify({
-              bet: bet,
-              kitty: currentKitty,
-              wallet: wallet,
-            }),
-            blocks: [blockKitUtilities.markdownSection(`<@${bet.userId}> has bet that...`),
-              blockKitUtilities.markdownSection(bet.scenarioText),
-              blockKitUtilities.markdownSection(`You currently have ${
-                    wallet.points
-                  } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
-                    remainingBet,
-                    wallet.points
-                  )} pts.`),
-              {
-                type: "input",
-                block_id: "amount_input",
-                label: {
-                  type: "plain_text",
-                  text: "How many points would you like to bet?",
-                },
-                element: {
-                  type: "plain_text_input",
-                  action_id: "amount_input",
-                },
-              },
-            ],
-            submit: {
-              type: "plain_text",
-              text: "Submit",
+            element: {
+              type: "plain_text_input",
+              action_id: "amount_input",
             },
           },
-        });
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  );
+        ],
+        submit: {
+          type: "plain_text",
+          text: "Submit",
+        },
+      },
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
 
+exports.setup = (app) => {
   // Handle a view_submission event
   app.view("bet_acception", async ({ ack, body, view, context }) => {
     const user = body.user.id;

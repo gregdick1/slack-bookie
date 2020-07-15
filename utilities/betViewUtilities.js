@@ -1,16 +1,57 @@
 const blockKitUtilities = require("./blockKitUtilities");
 
 exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
+
+  let overflowOptions = [];
+  if (statusDisplay === 'Open') {
+    overflowOptions.push({
+      text: {
+        type: 'plain_text',
+        text: 'Accept Bet',
+      },
+      value: 'accept_bet'
+    });
+  }
+
+  overflowOptions.push({
+    text: {
+      type: 'plain_text',
+      text: 'Submit Results',
+    },
+    value: 'submit_results'
+  });
+
+  overflowOptions.push({
+    text: {
+      type: 'plain_text',
+      text: 'Cancel Bet',
+    },
+    value: 'cancel_bet'
+  });
+
   const blocks = [
     blockKitUtilities.markdownSection(`<@${bet.userId}> wants to make a bet!`),
     blockKitUtilities.divider(),
   ]
   
-  if (statusDisplay === 'Open') {
-    blocks.push(blockKitUtilities.markdownSectionWithAccessoryButton(bet.scenarioText, "Accept Bet", "accept_bet"));
+  if (statusDisplay !== 'Finished'){
+    blocks.push({
+      type: 'section',
+      block_id: 'bet_action',
+      text: {
+        type: 'mrkdwn',
+        text: bet.scenarioText,
+      },
+      accessory: {
+        type: 'overflow',
+        action_id: 'bet_action_from_channel',
+        options: overflowOptions
+      }
+    });
   } else {
     blocks.push(blockKitUtilities.markdownSection(bet.scenarioText));
   }
+
   blocks.push(blockKitUtilities.divider());
 
   let finishedText = '';
@@ -27,8 +68,5 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
       },
     ]
   });
-  if (['Open', 'Closed'].includes(statusDisplay)){
-    blocks.push(blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel"));
-  }
   return blocks;
 }
