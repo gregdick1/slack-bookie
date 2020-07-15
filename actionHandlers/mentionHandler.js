@@ -1,9 +1,10 @@
 const walletDB = require("../db/wallet");
 const consts = require("../consts");
+const utilities = require('../utilities/utilities');
 
 exports.setup = (app) => {
   app.message(
-    `<@${consts.botId}> Let's gamble!`,
+    `${utilities.formatSlackUserId(consts.botId)} Let's gamble!`,
     async ({ message, context, say }) => {
       const channel = message.channel;
       if (walletDB.getCurrentSeason(channel) !== 0) {
