@@ -13,9 +13,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
   if (statusDisplay === this.statusOpenDisplay) {
     overflowOptions.push(blockKitUtilities.overflowOption('Accept Bet', 'accept_bet'));
   }
-
   overflowOptions.push(blockKitUtilities.overflowOption('Submit Results', 'submit_results'));
-
   overflowOptions.push(blockKitUtilities.overflowOption('Cancel Bet', 'cancel_bet'));
 
   const blocks = [
@@ -23,9 +21,7 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
     blockKitUtilities.divider(),
   ]
 
-  if (statusDisplay === this.statusOpenDisplay) {
-    blocks.push(blockKitUtilities.markdownSectionWithAccessoryButton(bet.scenarioText, "Accept Bet", "accept_bet"));
-  } else if (statusDisplay !== this.statusFinishedDisplay) {
+  if (statusDisplay !== this.statusFinishedDisplay) {
     const sectionWithOverflow = blockKitUtilities.markdownSectionWithOverflow(bet.scenarioText, 'bet_action', 'bet_action_from_channel', overflowOptions);
     blocks.push(sectionWithOverflow);
   } else {
@@ -48,10 +44,6 @@ exports.getBetPostView = (bet, statusDisplay, pointsRemaining) => {
       },
     ]
   });
-  const submittableStatuses = [this.statusOpenDisplay, this.statusClosedDisplay];
-  if (submittableStatuses.includes(statusDisplay)) {
-    blocks.push(blockKitUtilities.buttonAction("bet_actions", "Submit Results", "submit_results_from_channel"));
-  }
   return blocks;
 }
 

@@ -10,8 +10,8 @@ exports.handleSubmitResultsFromChannel = async (app, body, context) => {
   try {
     const postId = body.message.ts;
     const channel = body.channel.id;
-    const bet = betDb.getBetByPostId(channel, postId);
-    const betAccepts = betAcceptDb.getAllBetAcceptsForBet(bet._id);
+    const bet = betDB.getBetByPostId(channel, postId);
+    const betAccepts = betAcceptDB.getAllBetAcceptsForBet(bet._id);
 
     let userCanSubmit = false;
     const user = body.user.id;
