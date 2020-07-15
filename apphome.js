@@ -116,14 +116,7 @@ const setMeUpView = (channelId) => {
 }
 
 const homeViewSummary = (blockArray) => {
-    return {
-        type: "home",
-        title: {
-            type: "plain_text",
-            text: "Gambling is dangerous",
-        },
-        blocks: blockArray,
-    };
+    return blockKitUtilities.homeView("Bookie Bot!", blockArray);
 };
 
 const getBetsForWallet = (allBetsForUser, walletId) => {
@@ -151,7 +144,7 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, 
             const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
             blockArray.push(walletSummaryView(wallet));
             if (betsForThisWallet && betsForThisWallet.length > 0) {
-                blockArray.push(blockKitUtilities.markdownSection(`Here are your created bets in <#${wallet.channelId}>:`));
+                blockArray.push(blockKitUtilities.markdownSection(`Here are your created bets in ${utilities.formatChannelId(wallet.channelId)}:`));
                 betsForThisWallet.sort(sortUtilities.betSortFunc);
                 for (let j = 0; j < betsForThisWallet.length; j++) {
                     const thisBet = betsForThisWallet[j];
@@ -159,7 +152,7 @@ const updateView = async (slackUser, channelId, walletsForUser, allBetsForUser, 
                 }
             }
             if (betAcceptsForThisWallet && betAcceptsForThisWallet.length > 0) {
-                blockArray.push(blockKitUtilities.markdownSection(`You have agreed to the following bets in <#${wallet.channelId}>:`));
+                blockArray.push(blockKitUtilities.markdownSection(`You have agreed to the following bets in ${utilities.formatChannelId(wallet.channelId)}:`));
                 betAcceptsForThisWallet.sort(sortUtilities.betAcceptSortFunc);
                 for (let j = 0; j < betAcceptsForThisWallet.length; j++) {
                     const thisBetAccept = betAcceptsForThisWallet[j];

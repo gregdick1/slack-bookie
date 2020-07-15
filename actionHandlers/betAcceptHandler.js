@@ -19,50 +19,28 @@ exports.handleBetAccept = async (app, body, context) => {
     const remainingBet = canTake - currentKitty;
 
     const wallet = walletDB.getWallet(channel, body.user.id);
+
+    const modalViewBlocks = [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
+    blockKitUtilities.markdownSection(bet.scenarioText),
+    blockKitUtilities.markdownSection(`You currently have ${
+      wallet.points
+      } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+        remainingBet,
+        wallet.points
+      )} pts.`),
+    blockKitUtilities.input("amount_input", "How many points would you like to bet?", "amount_input"),
+    ];
+    const modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
+      bet: bet,
+      kitty: currentKitty,
+      wallet: wallet,
+    }, modalViewBlocks, "Submit");
     const result = await app.client.views.open({
       token: context.botToken,
       // Pass a valid trigger_id within 3 seconds of receiving it
       trigger_id: body.trigger_id,
       // View payload
-      view: {
-        type: "modal",
-        // View identifier
-        callback_id: "bet_acception",
-        title: {
-          type: "plain_text",
-          text: "Accept this Bet",
-        },
-        private_metadata: JSON.stringify({
-          bet: bet,
-          kitty: currentKitty,
-          wallet: wallet,
-        }),
-        blocks: [blockKitUtilities.markdownSection(`${utilities.formatSlackUserId(bet.userId)} has bet that...`),
-        blockKitUtilities.markdownSection(bet.scenarioText),
-        blockKitUtilities.markdownSection(`You currently have ${
-          wallet.points
-          } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
-            remainingBet,
-            wallet.points
-          )} pts.`),
-        {
-          type: "input",
-          block_id: "amount_input",
-          label: {
-            type: "plain_text",
-            text: "How many points would you like to bet?",
-          },
-          element: {
-            type: "plain_text_input",
-            action_id: "amount_input",
-          },
-        },
-        ],
-        submit: {
-          type: "plain_text",
-          text: "Submit",
-        },
-      },
+      view: modalView,
     });
   } catch (error) {
     console.error(error);
@@ -132,10 +110,10 @@ exports.setup = (app) => {
     walletDB.updateBalance(wallet._id, -amount);
 
     const totalPaid = md.kitty + amount;
-    let status = "Open";
+    let status = betViewUtilities.statusOpenDisplay;
     if (totalPaid == canTake) {
       betDB.setBetStatus(bet._id, betDB.statusClosed);
-      status = "Closed";
+      status = betViewUtilities.statusClosedDisplay;
     }
 
     await app.client.chat.update({
