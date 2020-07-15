@@ -89,13 +89,21 @@ exports.setup = (app) => {
       await ack();
     }
 
-    //threaded reply to the bet post
-    const result = await app.client.chat.postMessage({
-      token: context.botToken,
-      channel: channel,
-      thread_ts: bet.postId,
-      text: `${utilities.formatSlackUserId(user)} has accepted this bet!`,
-    });
+    //Handle the race condition. Get the bet from the db again and check to make sure there's enough remaining points
+    let freshBet = betDB.getBetById(bet._id);
+    let freshAccepts = betAcceptDB.getAllBetAcceptsForBet(freshBet._id);
+    let freshCanTake = Math.trunc(bet.odds.numerator * freshBet.pointsBet / freshBet.odds.denominator)
+    let freshKitty = freshAccepts.reduce((current, next) => current + next.pointsBet, 0);
+    let freshRemainingBet = freshCanTake - freshKitty;
+    if (freshRemainingBet < amount) {
+      //We have hit the race condition where somebody else accepted and beat them to the punch. We need to DM the user and let them know
+      await app.client.chat.postMessage({
+        token: context.botToken,
+        channel: user,
+        text: "It looks like somebody else accepted the bet before you were able to submit. I wasn't able to process it. If the bet is still open, you can try again."
+      });
+      return;
+    }
 
     let payout = amount + Math.trunc(bet.odds.denominator * amount / bet.odds.numerator);
 
@@ -108,6 +116,14 @@ exports.setup = (app) => {
       payout
     );
     walletDB.updateBalance(wallet._id, -amount);
+
+    //threaded reply to the bet post
+    const result = await app.client.chat.postMessage({
+      token: context.botToken,
+      channel: channel,
+      thread_ts: bet.postId,
+      text: `${utilities.formatSlackUserId(user)} has accepted this bet!`,
+    });
 
     const totalPaid = md.kitty + amount;
 
