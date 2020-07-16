@@ -139,17 +139,6 @@ exports.addBet = (
   odds,
   postId
 ) => {
-  let existingBet = this.getBetByUserChannelScenario(
-    userId,
-    channelId,
-    walletId,
-    scenarioText
-  );
-  if (existingBet !== null) {
-    console.log("WHOA PARTNER. ALREADY A BET LIKE THIS");
-    return existingBet;
-  }
-  //TODO transfer points from wallet to bet
   db.insertItem(
     {
       userId: userId,
