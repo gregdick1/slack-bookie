@@ -31,13 +31,18 @@ const validateFieldInputs = async (ack, view, wallet) => {
   const oddsInput = fieldVals["odds_input"]["odds_input"]["value"]
   const match = oddsInput.match(/([0-9]+):([0-9]+)/);
   let odds = undefined
+  let oddsString = oddsInput;
   if (!match) {
     errors = {
       odds_input: "Odds must be in the format A:B"
     }
   } else {
     //In the UI, we show the odds from the perspective of the bet acceptors. In the code, we use it in the perspective of the bet creator
-    odds = { numerator: match[2], denominator: match[1] };
+    const unreducedNumerator = parseInt(match[2]);
+    const unreducedDenominator = parseInt(match[1]);
+    const gcd = utilities.gcd(unreducedNumerator, unreducedDenominator);
+    odds = { numerator: unreducedNumerator / gcd, denominator: unreducedDenominator / gcd };
+    oddsString = `${odds.denominator}:${odds.numerator}`;
   }
 
   if (isNaN(amount) || amount <= 0) {
@@ -48,10 +53,10 @@ const validateFieldInputs = async (ack, view, wallet) => {
     errors.amount_input = `You only have ${wallet.points} points in your wallet!`;
   } else if (odds && amount < odds.denominator) {
     errors = errors === undefined ? {} : errors;
-    errors.amount_input = `With odds of ${oddsInput}, you must put up at least ${odds.denominator}`
+    errors.amount_input = `With odds of ${oddsString}, you must put up at least ${odds.denominator}`
   } else if (odds && amount % odds.denominator !== 0) {
     errors = errors === undefined ? {} : errors;
-    errors.amount_input = `With odds of ${oddsInput}, your amount must be a multiple of ${odds.denominator}.`
+    errors.amount_input = `With odds of ${oddsString}, your amount must be a multiple of ${odds.denominator}.`
   }
 
   if (errors !== undefined) {
@@ -99,13 +104,6 @@ exports.setupBets = (app) => {
           blockKitUtilities.textInput("amount_input", "How many points am I putting up?", "amount_input"),
           blockKitUtilities.textInput("odds_input", "What odds am I giving to others?", "odds_input", false, "1:1"),
           blockKitUtilities.markdownSection("_e.g. 2:1 means the other people put up half as many points as me._"),
-
-          // blockKitUtilities.divider(),
-          // blockKitUtilities.markdownSectionWithAccessoryButton(
-          //   "Once you've entered an amount and odds, this section can show you the payouts before you submit the bet",
-          //   "Calculate Payouts",
-          //   "recalc_payouts"
-          // ),
         ];
         const modalView = blockKitUtilities.modalView("bet_creation", "Create a Bet", {
           wallet: wallet,

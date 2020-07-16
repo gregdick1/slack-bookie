@@ -18,3 +18,9 @@ exports.formatSlackUserId = (slackUserId) => {
 exports.formatChannelId = (channelId) => {
     return `<#${channelId}>`;
 }
+
+function gcd(a, b) {
+    return b ? gcd(b, a % b) : a;
+}
+
+exports.gcd = gcd;

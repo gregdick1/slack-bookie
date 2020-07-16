@@ -35,10 +35,10 @@ exports.handleBetAccept = async (app, body, context) => {
         blockKitUtilities.markdownSection(bet.scenarioText),
         blockKitUtilities.markdownSection(`You currently have ${
           wallet.points
-          } pts. This bet has ${remainingBet} pts remaining. You can accept this bet for any amount up to ${Math.min(
+          } pts. This bet has ${remainingBet} points remaining at odds of ${bet.odds.denominator}:${bet.odds.numerator}. You can accept this bet for any amount up to ${Math.min(
             remainingBet,
             wallet.points
-          )} pts.`),
+          )} points in multiples of ${bet.odds.numerator}.`),
         blockKitUtilities.textInput("amount_input", "How many points would you like to bet?", "amount_input"),
       ];
       modalView = blockKitUtilities.modalView("bet_acception", "Accept this Bet", {
@@ -90,6 +90,12 @@ exports.setup = (app) => {
       errors = {
         amount_input: `This bet only has ${remainingBet} points remaining. You can't wager ${amount} points!`,
       };
+    } else if (amount < bet.odds.numerator || amount % bet.odds.numerator !== 0) {
+      // Remember... odds in code are stored for the creator, so for the acceptor "numerator" is 
+      // the second number they see.
+      errors = {
+        amount_input: `With odds of ${bet.odds.denominator}:${bet.odds.numerator}, your bet must be a multiple of ${bet.odds.numerator}.`
+      }
     }
 
     if (errors !== undefined) {
