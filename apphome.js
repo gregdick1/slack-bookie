@@ -188,10 +188,11 @@ const updateView = async (slackUser, /*channelId, */ walletsForUser, allBetsForU
             const wallet = walletsForUser[i];
             const betsForThisWallet = getBetsForWallet(allBetsForUser, wallet._id);
             const betAcceptsForThisWallet = getBetAcceptsForWallet(allBetAcceptsForUser, wallet._id);
-            blockArray.push(walletSummaryView(wallet));
-            if (!wallet.retired) {
-                blockArray.push(walletActionView(wallet));
+            if (wallet.retired || !wallet.isActiveSeason) {
+                continue;
             }
+            blockArray.push(walletSummaryView(wallet));
+            blockArray.push(walletActionView(wallet));
             blockArray.push(blockKitUtilities.dividerBlock);
             if (betsForThisWallet && betsForThisWallet.length > 0) {
                 blockArray.push(blockKitUtilities.markdownSection(
