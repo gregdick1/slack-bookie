@@ -201,7 +201,7 @@ const updateView = async (slackUser, /*channelId, */ walletsForUser, allBetsForU
                 for (let j = 0; j < betsForThisWallet.length; j++) {
                     const thisBet = betsForThisWallet[j];
                     blockArray.push(betSummaryView(thisBet, wallet));
-                    blockArray.push(betActionView(thisBet));
+                    //blockArray.push(betActionView(thisBet));
                 }
             }
             if (betAcceptsForThisWallet && betAcceptsForThisWallet.length > 0) {
@@ -211,7 +211,7 @@ const updateView = async (slackUser, /*channelId, */ walletsForUser, allBetsForU
                 for (let j = 0; j < betAcceptsForThisWallet.length; j++) {
                     const thisBetAccept = betAcceptsForThisWallet[j];
                     blockArray.push(betAcceptSummaryView(thisBetAccept, wallet));
-                    blockArray.push(betAcceptActionView(thisBetAccept));
+                    //blockArray.push(betAcceptActionView(thisBetAccept));
                 }
             }
             blockArray.push(blockKitUtilities.dividerBlock);
