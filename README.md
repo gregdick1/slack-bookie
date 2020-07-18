@@ -1,7 +1,6 @@
 # slack-bookie
 
 This is a slack app that facilitates individuals placing bets using imaginary points. It should be able to be installed to any workspace. It uses nodejs and the bolt framework. It uses tinyDb for a database.
-See instructions [on sync](https://sync.hudlnet.com/display/~greg.dick/Bookie+Slack+App+local+development)
 
 # Getting Started Locally
  - Install [Visual Studio Code](https://code.visualstudio.com/download)
