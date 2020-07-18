@@ -66,10 +66,10 @@ Go to this page in the slack app configuration and simply enable Interactivity. 
 
 ## Slack emojis
 The app expects the following emojis to exist in the slack workspace. If you don't have them, you can either create them, or seek out the code that references them and change it to something else. Hopefully in the future, these will be more easily configured
- - :yes: (used for yes votes)
- - :no: (used for no votes)
- - :notsureif: (used for votes of inconclusive results)
- - :cancel: (used to display canceled status)
- - :closed_book: (used to display closed status)
- - :done1: (used to display finished status)
- - :in-progress: (used to display open status)
+ - `:yes:` (used for yes votes)
+ - `:no:` (used for no votes)
+ - `:notsureif:` (used for votes of inconclusive results)
+ - `:cancel:` (used to display canceled status)
+ - `:closed_book:` (used to display closed status)
+ - `:done1:` (used to display finished status)
+ - `:in-progress:` (used to display open status)
